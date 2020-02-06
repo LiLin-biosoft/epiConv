@@ -22,3 +22,15 @@ g++ ~/epiConv/matrix_sampl.c -o ~/epiConv/matrix_sampl
 
 ## Usage
 We will use one dataset of [PBMCs](https://support.10xgenomics.com/single-cell-atac/datasets/1.2.0/atac_pbmc_5k_v1) from 10X Genomics as example. Two files are required: `Peak by cell matrix (filtered)` and `Fragments (TSV)`. Here we put them into folder `pbmc5k/`, extract the first file and rename the second file as `pbmck5k_frag.bed.gz`.
+
+There are two versions of epiConv: epiConv-full and epiConv-simp. EpiConv-full calculates the similarities between cells from raw Tn5 insertion profiles and epiConv-simp calculates the similarities from binary matrix. Here we first show the analysis pipeline for epiConv-full. First we use `peak_calling.sh` to call high density regions of Tn5 insertions:
+```
+peak_calling.sh <prefix> <extsize> <fraction of data retained>
+```
+`<prefix>`: the prefix of data.
+`<extsize>`: the same parameter in `MACS2 pileup`. For example, set `<extsize>` to 100 will make MACS2 extend each insertion from both directions by 100bp before pileup insertions.
+`<fraction of data retained>`: specify the fraction of data you want to use in downstream analysis. Based on our preliminary analysis, this parameter need not to be accurately specified but should be close to the fraction of fragments from nucleosome-free regions. For example, you can check the histogram of insertion length from 10X Genomics reporting summary to learn this parameter (the fraction of fragments in first peak in the histogram).
+For the PBMC dataset, we use the following command:
+```
+~/epiConv/peak_calling.sh pbmc5k/pbmc5k 100 0.7
+```
