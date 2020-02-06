@@ -5,7 +5,7 @@ EpiConv is a novel algorithm to cluster scATAC-seq data and detect differentiall
 
 ## Installation
 EpiConv is developed under the following environments:
-1. CentOS release 6.9 with GNU 4.9.1 and perl 5.10.1
+1. CentOS release 6.9 with perl 5.10.1
 2. bedtools v2.27.1
 3. MACS2
 4. R 3.5.1<br>
@@ -22,7 +22,23 @@ g++ ~/epiConv/matrix_sampl.c -o ~/epiConv/matrix_sampl
 ## Usage
 We will use one dataset of [PBMCs](https://support.10xgenomics.com/single-cell-atac/datasets/1.2.0/atac_pbmc_5k_v1) from 10X Genomics as example. Two files are required: `Peak by cell matrix (filtered)` and `Fragments (TSV)`. Here we put them into folder `pbmc5k/`, extract the first file and rename the second file as `pbmck5k_frag.bed.gz`.
 
-There are two versions of epiConv: epiConv-full and epiConv-simp. EpiConv-full calculates the similarities between cells from raw Tn5 insertion profiles and epiConv-simp calculates the similarities from binary matrix. Here we first show the analysis pipeline for epiConv-full. First we use `peak_calling.sh` to call high density regions of Tn5 insertions:
+There are two versions of epiConv: epiConv-full and epiConv-simp. EpiConv-full calculates the similarities between cells from raw Tn5 insertion profiles and epiConv-simp calculates the similarities from binary matrix. We first show the analysis pipeline for epiConv-simp. It is an implemention in R. First we read the source file of epiConv and the data:
+```
+source("~/epiConv/epiConv_functions.R")
+mat<-readMM(file="~/pbmc5k/matrix.mtx")
+barcodes<-read.table(file="~/pbmc5k/barcodes.tsv",colClass="character")[,1]
+peaks<-read.table(file="~/pbmc5k/peaks.bed")
+
+```
+
+
+
+
+
+
+
+
+First we use `peak_calling.sh` to call high density regions of Tn5 insertions:
 ```
 peak_calling.sh <prefix> <extsize> <fraction of data retained>
 ```
