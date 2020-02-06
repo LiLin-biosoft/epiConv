@@ -28,7 +28,11 @@ source("~/epiConv/epiConv_functions.R")
 mat<-readMM(file="~/pbmc5k/matrix.mtx")
 barcodes<-read.table(file="~/pbmc5k/barcodes.tsv",colClass="character")[,1]
 peaks<-read.table(file="~/pbmc5k/peaks.bed")
-
+colnames(peak)<-c("seqnames","start","end")
+rownames(mat)<-paste(peak$seqnames,":",
+                     peak$start,"-",
+                     peak$end,sep="")
+colnames(mat)<-barcodes
 ```
 
 
