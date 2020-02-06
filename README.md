@@ -33,4 +33,11 @@ For the PBMC dataset, we use the following command:
 ```
 ~/epiConv/peak_calling.sh pbmc5k/pbmc5k 100 0.7
 ```
-When it is finished (~4 hours), there will be a new file `pbmc5k/pbmc5k_peak.bed` in bed format containing the peaks.
+When it is finished (~4 hours), there will be a new file `pbmc5k/pbmc5k_peak.bed` in bed format containing the peaks. In order to run epiConv in parallel, we need to split the job using the linux command `split`:
+```
+split -a2 -d -l127000 pbmc5k/pbmc5k_peak.bed pbmc5k/pbmc5k_peak.run
+```
+Here we split the peak file into 10 jobs, each containing 127000 peaks. Then we use `convolution.sh` to calculate the similarites between single cells:
+```
+
+```
