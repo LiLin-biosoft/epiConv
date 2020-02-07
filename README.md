@@ -115,7 +115,21 @@ When it is finished (~4 hours), there will be a new file `pbmc5k/pbmc5k_peak.bed
 ```
 split -a2 -d -l127000 pbmc5k/pbmc5k_peak.bed pbmc5k/pbmc5k_peak.run
 ```
-Here we split the peak file into 10 jobs, each containing 127000 peaks. Then we use `convolution.sh` to calculate the similarites between single cells:
+Here we split the peak file into 10 jobs, each containing 127000 peaks. Like epiConv-simp, we need to randomly sample some peaks to perform bootstraps:
+```
+~/epiConv/peak_sampl.sh <peak file> <number of bootstraps> <fraction of peaks in each bootstrap> <random seed>
+```
+`<peak file>`: the peak file generated in previous step.<br>
+`<number of bootstraps>`: number of bootstraps.<br>
+`<fraction of peaks in each bootstrap>`: fraction of peaks in each bootstrap.<br>
+`<random seed>`: random seed.<br>
+`peak_sampl.sh` will directly print to the standard output. For the PBMC dataset, we use the following command:
+```
+~/epiConv/peak_sampl.sh pbmc5k/pbmc5k_peak.bed 30 0.125 12345 >pbmc5k/pbmc5k_sampl.mtx
+```
+
+
+Then we use `convolution.sh` to calculate the similarites between single cells:
 ```
 
 ```
