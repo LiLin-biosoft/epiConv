@@ -71,7 +71,7 @@ infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
   - `nsim`: the number of bootstraps.
   - Generally the settings above is suitable for most data.
 
-The similarities between single cells is based on a bootstrap approach. In each bootstrap we randomly sample some peaks and calculate the similarites between single cells, the final similarities are calculated by averging the results from bootstraps:
+The similarities between single cells is calculated based on bootstrap approach. In each replicate we randomly sample some peaks and calculate the similarites between single cells, the final similarities are calculated by averging the results from bootstraps:
 ```
 sample_size<-floor(nrow(mat)/8)
 nsim<-30
@@ -84,7 +84,14 @@ for(i in sample_matrix){
 Smat<-Smat/nsim
 res_epiConv<-add.similarity(obj=res_epiConv,x=Smat,name="sampl")
 ```
-In the script above, `sample_matrix` contains the peaks for each bootstrap. Function `epiConv.matrix` is used to calculate the similarites. `mat` specifies the matrix used to calculate the similarities. `inf_replaces` should be specified by the value calculated above or an empirical value (e.g. -8). Function `add.simlarity` adds results to `res_epiConv@similarity[["sampl"]]`. `obj` specifies the epiConv object, `x` specifies the similarity matrix and `name` specifies the list name used to store the data. We can simply use the form `res_epiConv[["sampl"]]` to obtain the similarity matrix from the object.
+In the script above, `sample_matrix` contains the peaks for each bootstrap. `Smat` contains the similarities between single cells.
++ `epiConv.matrix`: the function that calculates the similarites.
+  - `mat`: the matrix used to calculate the similarities.
+  - `inf_replace`: the value used to replace infinity. It can be calculated above or used as an empirical value (e.g. -8). 
++ `add.simlarity`: adds results to the epiConv object.
+  - `obj`: the epiConv object.
+  - `x`: the similarity matrix.
+  - `name`: the list name used to store the similarity matrix.
 
 Next we blur the similarities between single cells to denoise the data.
 ```
