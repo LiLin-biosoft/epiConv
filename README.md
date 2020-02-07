@@ -8,7 +8,7 @@ EpiConv is developed under the following environments:
 1. CentOS release 6.9 with perl 5.10.1
 2. bedtools v2.27.1
 3. MACS2
-4. R 3.5.1
+4. R 3.5.1 with:
     1. Matrix package
     2. bigmemory package
     3. biganalytics package
