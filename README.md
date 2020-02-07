@@ -58,9 +58,9 @@ mat<-tfidf.norm(mat=res_epiConv@mat[["peak"]],lib_size=res_epiConv$lib_size)
 infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
                    sample_size=0.125,nsim=30)
 ```
-Function `tfidf.norm`: perform the TF-IDF transformation.<br>
-+ `mat`: the sparse matrix in MatrixMarket format.
-+ `lib_size`: library size used in normalization. In the scripts above, we used the total number of accessible regions in each cell as library size.<br>
++ `tfidf.norm`: perform the TF-IDF transformation.<br>
+  - `mat`: the sparse matrix in MatrixMarket format.
+  - `lib_size`: library size used in normalization. In the scripts above, we used the total number of accessible regions in each cell as library size.<br>
 Function `inf.estimate`: learn a small value to replace infinite value in the analysis below.<br>
 + `mat`: the matrix after TF-IDF transformation. We randomly sample a small fraction of cells from the full matrix to save the running time.
 + `sample_size`: the fraction of peaks used in each bootstrap.<br>
