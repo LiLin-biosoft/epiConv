@@ -36,10 +36,15 @@ lib.estimate<-function(mat){
   mat@x[mat@x>1]<-1
   return(Matrix::colSums(mat))}
 lib_size<-lib.estimate(mat)
+freq.estimate<-function(mat){
+  mat@x[mat@x>1]<-1
+  return(Matrix::rowSums(mat)/ncol(mat))
+}
+freq<-freq.estimate(mat[,lib_size>1000])
 
 res_epiConv<-create.epiconv(meta.features=data.frame(barcode=barcode[lib_size>1000],
                                                      lib_size=lib_size[lib_size>1000]))
-res_epiConv@mat[["peak"]]<-mat[,lib_size>1000]
+res_epiConv@mat[["peak"]]<-mat[freq!=0,lib_size>1000]
 ```
 The script above created an object `res_epiConv` containing the raw data and results. The meta features of cells can be obtained from the object using the form `res_epiConv$barcode` or `res_epiConv$lib_size`. Low quality cells (library size <1000) are removed. Next, we normalize the matrix by TF-IDF transformation:
 ```
