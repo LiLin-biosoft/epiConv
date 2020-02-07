@@ -121,6 +121,7 @@ The distance is calculated by `max(Smat)-Smat`.
   - `obj`: the epiConv object.
   - `x`: the embedding matrix.
   - `name`: the list name used to store the embedding.
+
 To prepare the input for epiConv-full, we save the list of high-quality barcodes and the epiConv object:
 ```
 temp<-data.frame(res_epiConv@meta.features$barcode,1)
