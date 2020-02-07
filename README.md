@@ -22,6 +22,7 @@ g++ ~/epiConv/matrix_sampl.c -o ~/epiConv/matrix_sampl
 ## Usage
 We will use one dataset of [PBMCs](https://support.10xgenomics.com/single-cell-atac/datasets/1.2.0/atac_pbmc_5k_v1) from 10X Genomics as example. Two files are required: `Peak by cell matrix (filtered)` and `Fragments (TSV)`. Here we put them into folder `pbmc5k/`, extract the first file and rename the second file as `pbmck5k_frag.bed.gz`.
 
+### epiConv-simp
 There are two versions of epiConv: epiConv-full and epiConv-simp. EpiConv-full calculates the similarities between cells from raw Tn5 insertion profiles and epiConv-simp calculates the similarities from binary matrix. We first show the analysis pipeline for epiConv-simp. It is an implemention in R. First we read the source file of epiConv and the data:
 ```
 source("~/epiConv/epiConv_functions.R")
@@ -90,9 +91,13 @@ res_epiConv<-add.embedding(obj=res_epiConv,x=umap_res,name="samplBlurred")
 plot(res_epiConv@embedding[["samplBlurred"]],pch="+")
 ```
 The distance is calculated by `max(Smat)-Smat`. `add.embedding` is used to add the embeddiing to the epiConv object. `obj` specifies the epiConv object, `x` specifies the embedding matrix and `name` specifies the list name used to store the embedding.
+To prepare the input for epiConv-full, we save the list of high-quality barcodes to file:
+```
+temp<-data.frame(res_epiConv@meta.features$barcode,1)
+write.table(temp,file="pbcm5k_ident.tsv",row.names=F,col.names=F,quote=F,sep="\t")
+```
 
-
----------------------------------------------------------------------------------------------
+###epiConv-full
 First we use `peak_calling.sh` to call high density regions of Tn5 insertions:
 ```
 peak_calling.sh <prefix> <extsize> <fraction of data retained>
