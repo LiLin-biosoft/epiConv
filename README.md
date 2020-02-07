@@ -40,7 +40,7 @@ res_epiConv<-create.epiconv(meta.features=data.frame(barcode=barcode,
                                                      lib_size=lib.estimate(mat)))
 res_epiConv@mat[["peak"]]<-mat
 ```
-The script above created an object `res_epiConv` containing the raw data and results. Next, we normalize the matrix by TF-IDF transformation:
+The script above created an object `res_epiConv` containing the raw data and results. The meta features of cells can be obtained from the object using the form `res_epiConv$barcode` or `res_epiConv$lib_size`. Next, we normalize the matrix by TF-IDF transformation:
 ```
 mat<-tfidf.norm(mat=res_epiConv@mat[["peak"]],lib_size=res_epiConv$lib_size)
 infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
@@ -70,7 +70,7 @@ Smat<-sim.blur(Smat=res_epiConv[["sampl"]],
                knn=20)
 res_epiConv<-add.similarity(res_epiConv,x=Smat,name="samplBlurred")
 ```
-
+`sim.blur` is used to blur the similarity matrix. `Smat` specifies the similarity matrix, `weight_scale` specifies the weight for each cell. Generally we think cells with high library size are more reliable and use log10 library size as weights. `neighbor_frac` specifies the fraction of information used from the neighbors of each cell. It should be within 0~1. Higher value means strong denoising while lower value means weak denoising. The default value 0.25 is suitable for most datasets. If you find the downstream result is poor, you can try higher values (e.g. 0.5). `knn` specifies the number of neighbors for each cell. There is no need to change it unless your data set is very small (e.g. <200 cells).
 
 
 
