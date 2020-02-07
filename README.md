@@ -72,8 +72,17 @@ res_epiConv<-add.similarity(res_epiConv,x=Smat,name="samplBlurred")
 ```
 `sim.blur` is used to blur the similarity matrix. `Smat` specifies the similarity matrix, `weight_scale` specifies the weight for each cell. Generally we think cells with high library size are more reliable and use log10 library size as weights. `neighbor_frac` specifies the fraction of information used from the neighbors of each cell. It should be within 0~1. Higher value means strong denoising while lower value means weak denoising. The default value 0.25 is suitable for most datasets. If you find the downstream result is poor, you can try higher values (e.g. 0.5). `knn` specifies the number of neighbors for each cell. There is no need to change it unless your data set is very small (e.g. <200 cells).
 
+Finally we use umap to learn the low-dimensional embedding of the data:
+```
+umap_settings<-umap::umap.defaults
+umap_settings$input<-"dist"
 
-
+umap_settings$n_components<-2
+umap_res<-umap::umap(max(Smat)-Smat,config=umap_settings)$layout
+res_epiConv<-add.embedding(obj=res_epiConv,x=umap_res,name="samplBlurred")
+plot(res_epiConv@embedding[["samplBlurred"]],pch="+")
+```
+The distance is calculated by `max(Smat)-Smat`. `add.embedding` is used to add the embeddiing to the epiConv object. `obj` specifies the epiConv object, `x` specifies the embedding matrix and `name` specifies the list name used to store the embedding.
 
 
 
