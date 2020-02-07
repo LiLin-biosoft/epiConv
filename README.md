@@ -88,7 +88,7 @@ In the script above, `sample_matrix` contains the peaks for each bootstrap. `Sma
 + `epiConv.matrix`: the function that calculates the similarites.
   - `mat`: the matrix used to calculate the similarities.
   - `inf_replace`: the value used to replace infinity. It can be calculated above or used as an empirical value (e.g. -8). 
-+ `add.simlarity`: adds results to the epiConv object.
++ `add.simlarity`: add similarity matrix to the epiConv object.
   - `obj`: the epiConv object.
   - `x`: the similarity matrix.
   - `name`: the list name used to store the similarity matrix.
@@ -101,7 +101,11 @@ Smat<-sim.blur(Smat=res_epiConv[["sampl"]],
                knn=20)
 res_epiConv<-add.similarity(res_epiConv,x=Smat,name="samplBlurred")
 ```
-`sim.blur` is used to blur the similarity matrix. `Smat` specifies the similarity matrix, `weight_scale` specifies the weight for each cell. Generally we think cells with high library size are more reliable and use log10 library size as weights. `neighbor_frac` specifies the fraction of information used from the neighbors of each cell. It should be within 0~1. Higher value means strong denoising while lower value means weak denoising. The default value 0.25 is suitable for most datasets. If you find the downstream result is poor, you can try higher values (e.g. 0.5). `knn` specifies the number of neighbors for each cell. There is no need to change it unless your data set is very small (e.g. <200 cells).
++ `sim.blur`: the function used to blur the similarity matrix.
+  - `Smat`: the similarity matrix for denoising.
+  - `weight_scale`: the weight for each cell. Generally we think cells with high library size are more reliable and use log10 library size as weights.
+  - `neighbor_frac`: the fraction of information used from the neighbors of each cell. It should be within 0~1. Higher value means strong denoising while lower value means weak denoising. The default value 0.25 is suitable for most datasets. If you find the downstream result is poor, you can try higher values (e.g. 0.5).
+  - `knn`: the number of neighbors for each cell. There is no need to change it unless your data set is very small (e.g. <200 cells).
 
 Finally we use umap to learn the low-dimensional embedding of the data:
 ```
@@ -112,8 +116,12 @@ umap_res<-umap::umap(max(Smat)-Smat,config=umap_settings)$layout
 res_epiConv<-add.embedding(obj=res_epiConv,x=umap_res,name="samplBlurred")
 plot(res_epiConv@embedding[["samplBlurred"]],pch="+")
 ```
-The distance is calculated by `max(Smat)-Smat`. `add.embedding` is used to add the embeddiing to the epiConv object. `obj` specifies the epiConv object, `x` specifies the embedding matrix and `name` specifies the list name used to store the embedding.
-To prepare the input for epiConv-full, we save the list of high-quality barcodes to file:
+The distance is calculated by `max(Smat)-Smat`. 
++ `add.embedding`: add the embeddiing to the epiConv object.
+  - `obj`: the epiConv object.
+  - `x`: the embedding matrix.
+  - `name`: the list name used to store the embedding.
+To prepare the input for epiConv-full, we save the list of high-quality barcodes and the epiConv object:
 ```
 temp<-data.frame(res_epiConv@meta.features$barcode,1)
 write.table(temp,file="pbmc5k/pbcm5k_ident.tsv",row.names=F,col.names=F,quote=F,sep="\t")
