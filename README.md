@@ -9,10 +9,10 @@ EpiConv is developed under the following environments:
 2. bedtools v2.27.1
 3. MACS2
 4. R 3.5.1
-    + Matrix package
-    + bigmemory package
-    + biganalytics package
-    + umap or uwot packages
+    1. Matrix package
+    2. bigmemory package
+    3. biganalytics package
+    4. umap or uwot packages
 
 All source codes of epiConv can be found in the folder `source/`. Here assume we put them into the folder `~/epiConv/`. Two source files need to be compiled.<br>
 ```
