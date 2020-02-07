@@ -24,9 +24,9 @@ We will use one dataset of [PBMCs](https://support.10xgenomics.com/single-cell-a
 
 There are two versions of epiConv: epiConv-full and epiConv-simp. EpiConv-full calculates the similarities between cells from raw Tn5 insertion profiles and epiConv-simp calculates the similarities from binary matrix. We first show the analysis pipeline for epiConv-simp. It is an implemention in R. First we read the source file of epiConv and the data:
 ```
-mat<-readMM(file=pars["matrix"])
-barcode<-read.table(file=pars["barcode"],colClass="character")[,1]
-peak<-read.table(file=pars["feature"])
+mat<-readMM(file="matrix.mtx")
+barcode<-read.table(file="barcodes.tsv",colClass="character")[,1]
+peak<-read.table(file="peaks.bed")
 colnames(peak)<-c("seqnames","start","end")
 rownames(mat)<-paste(peak$seqnames,":",
                      peak$start,"-",
@@ -42,11 +42,11 @@ res_epiConv@mat[["peak"]]<-mat
 ```
 The script above created an object `res_epiConv` containing the raw data and results. Next, we normalize the matrix by TF-IDF transformation:
 ```
-mat<-tfidf.norm(res_epiConv@mat[["peak"]],lib_size=res_epiConv$lib_size)
+mat<-tfidf.norm(mat=res_epiConv@mat[["peak"]],lib_size=res_epiConv$lib_size)
 infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
                    sample_size=0.125,nsim=30)
 ```
-inf.estimate is used to learn a small value to replace infinite value in the analysis below. Parameter `mat` specifies the matrix. We randomly sample a small fraction of cells from the full matrix to save the running time. `sample_size` specifies the fraction of peaks used in each bootstrap and `nsim` specifies the number of bootstraps. Generally the settings above is suitable for most data.
+`tfidf.norm` is used to perform the TF-IDF transformation. `mat` specifies the matrix and `lib_size` specifies the library size used in normalization. In the scripts above, we used the total number of accessible regions in each cell as library size. `inf.estimate` is used to learn a small value to replace infinite value in the analysis below. `mat` specifies the matrix. We randomly sample a small fraction of cells from the full matrix to save the running time. `sample_size` specifies the fraction of peaks used in each bootstrap and `nsim` specifies the number of bootstraps. Generally the settings above is suitable for most data.
 The similarities between single cells is based on a bootstrap approach. In each bootstrap we randomly sample some peaks and calculate the similarites between single cells, the final similarities are calculated by averging the results from bootstraps:
 ```
 sample_size<-floor(nrow(mat)/8)
