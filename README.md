@@ -8,11 +8,11 @@ EpiConv is developed under the following environments:
 1. CentOS release 6.9 with perl 5.10.1
 2. bedtools v2.27.1
 3. MACS2
-4. R 3.5.1<br>
-  4.1 Matrix package<br>
-  4.2 bigmemory package<br>
-  4.3 biganalytics package<br>
-  4.4 umap or uwot packages<br>
+4. R 3.5.1   
+Matrix package
+bigmemory package
+biganalytics package
+umap or uwot packages
 
 All source codes of epiConv can be found in the folder `source/`. Here assume we put them into the folder `~/epiConv/`. Two source files need to be compiled.<br>
 ```
