@@ -26,9 +26,9 @@ We will use one dataset of [PBMCs](https://support.10xgenomics.com/single-cell-a
 There are two versions of epiConv: epiConv-full and epiConv-simp. EpiConv-full calculates the similarities between cells from raw Tn5 insertion profiles and epiConv-simp calculates the similarities from binary matrix. We first show the analysis pipeline for epiConv-simp. It is an implemention in R. First we read the source file of epiConv and the data:
 ```
 source("~/epiConv/epiConv_functions.R")
-mat<-readMM(file="matrix.mtx")
-barcode<-read.table(file="barcodes.tsv",colClass="character")[,1]
-peak<-read.table(file="peaks.bed")
+mat<-readMM(file="pbmc5k/matrix.mtx")
+barcode<-read.table(file="pbmc5k/barcodes.tsv",colClass="character")[,1]
+peak<-read.table(file="pbmc5k/peaks.bed")
 colnames(peak)<-c("seqnames","start","end")
 rownames(mat)<-paste(peak$seqnames,":",
                      peak$start,"-",
@@ -93,12 +93,13 @@ The distance is calculated by `max(Smat)-Smat`. `add.embedding` is used to add t
 To prepare the input for epiConv-full, we save the list of high-quality barcodes to file:
 ```
 temp<-data.frame(res_epiConv@meta.features$barcode,1)
-write.table(temp,file="pbcm5k_ident.tsv",row.names=F,col.names=F,quote=F,sep="\t")
+write.table(temp,file="pbmc5k/pbcm5k_ident.tsv",row.names=F,col.names=F,quote=F,sep="\t")
+saveRDS(res_epiConv,file="res_epiConv.rds")
 ```
 
 ### epiConv-full
-In order to accelerate the running speed, epiConv-full runs in bash shell but some common steps shared by epiConv-simp is performed in R. Its input is a compressed bed file named `<prefix>_frag.bed.gz` (can be read by `zcat`; e.g `pbmc5k_frag.bed.gz`) with the following format: first column, chromsome; second column, starting site of the fragment, third column, ending stie of the fragment; fourth column, cell barcodes. Other columns are ignored. Generally this file will be provided by low level processing tools (e.g. cellranger from 10X Genomics). <br>
-  Also you need to prepare a file containing valid barocdes named `<prefiex>_ident.tsv` (e.g. `pbmc5k_ident.tsv` generated above). The first column of the file should be valid cell barcodes and the second column can be its identies (e.g. cell type, batch, experimental condition, or simply use 1 for all cells if there are not any information on the identities of cells). Only valid barcodes will be processed.<br>
+In order to accelerate the running speed, epiConv-full runs in bash shell but some common steps shared by epiConv-simp is performed in R. Its input is a compressed bed file named `<prefix>_frag.bed.gz` (can be read by `zcat`; e.g `pbmc5k/pbmc5k_frag.bed.gz`) with the following format: first column, chromsome; second column, starting site of the fragment, third column, ending stie of the fragment; fourth column, cell barcodes. Other columns are ignored. Generally this file will be provided by low level processing tools (e.g. cellranger from 10X Genomics). <br><br>
+  Also you need to prepare a file containing valid barocdes named `<prefiex>_ident.tsv` (e.g. `pbmc5k/pbmc5k_ident.tsv` generated above). The first column of the file should be valid cell barcodes and the second column can be its identies (e.g. cell type, batch, experimental condition, or simply use 1 for all cells if there are not any information on the identities of cells). Only valid barcodes will be processed.<br><br>
   First we use `peak_calling.sh` to call high density regions of Tn5 insertions:
 ```
 peak_calling.sh <prefix> <extsize> <fraction of data retained>
