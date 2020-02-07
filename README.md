@@ -49,29 +49,27 @@ res_epiConv<-create.epiconv(meta.features=data.frame(barcode=barcode[lib_size>10
 res_epiConv<-add.mat(obj=res_epiConv,x=mat[freq!=0,lib_size>1000],name="peak")
 ```
 We create an object `res_epiConv` containing the raw data and results. Low quality cells (library size <1000) are removed. 
-+ `create.epiConv`: create an epiConv object.<br>
++ `create.epiConv`: create an epiConv object.
   - `meta.features`: the data.frame that contains meta features of single cells (e.g. barcodes and library size).
   - The meta features of cells can be obtained from the object using the form such as `res_epiConv$barcode` or `res_epiConv$lib_size`.
-  - The meta features of cells can be obtained from the object using the form such as `res_epiConv$barcode` or `res_epiConv$lib_size`.
-Next, we normalize the matrix by TF-IDF transformation:
-+ `add.mat`: add mat to the epiConv object.<br>
++ `add.mat`: add mat to the epiConv object.
   - `obj`: the epiConv object.
   - `x`: the matrix.
   - `name`: the list name used to store the matrix.
-
+Next, we normalize the matrix by TF-IDF transformation:
 ```
 mat<-tfidf.norm(mat=res_epiConv@mat[["peak"]],lib_size=res_epiConv$lib_size)
 infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
                    sample_size=0.125,nsim=30)
 ```
-+ `tfidf.norm`: perform the TF-IDF transformation.<br>
-  - `mat`: the sparse matrix in MatrixMarket format.
-  - `lib_size`: library size used in normalization. In the scripts above, we used the total number of accessible regions in each cell as library size.<br>
-+ `inf.estimate`: learn a small value to replace infinite value in the analysis below.<br>
-  - `mat`: the matrix after TF-IDF transformation. We randomly sample a small fraction of cells from the full matrix to save the running time.
-  - `sample_size`: the fraction of peaks used in each bootstrap.<br>
-  - `nsim`: the number of bootstraps.<br>
-Generally the settings above is suitable for most data.
++ `tfidf.norm`: perform the TF-IDF transformation.
+  - `mat`: the Matrix object containing the matrix.
+  - `lib_size`: library size used in normalization. In the scripts above, we used the total number of accessible regions in each cell as library size.
++ `inf.estimate`: learn a small value to replace infinite value in the analysis below.
+  - `mat`: the matrix after TF-IDF transformation. Generally we randomly sample a small fraction of cells from the full matrix to save the running time.
+  - `sample_size`: the fraction of peaks used in each bootstrap.
+  - `nsim`: the number of bootstraps.
+  - Generally the settings above is suitable for most data.
 
 The similarities between single cells is based on a bootstrap approach. In each bootstrap we randomly sample some peaks and calculate the similarites between single cells, the final similarities are calculated by averging the results from bootstraps:
 ```
