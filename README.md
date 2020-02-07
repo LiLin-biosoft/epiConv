@@ -24,6 +24,7 @@ We will use one dataset of [PBMCs](https://support.10xgenomics.com/single-cell-a
 
 There are two versions of epiConv: epiConv-full and epiConv-simp. EpiConv-full calculates the similarities between cells from raw Tn5 insertion profiles and epiConv-simp calculates the similarities from binary matrix. We first show the analysis pipeline for epiConv-simp. It is an implemention in R. First we read the source file of epiConv and the data:
 ```
+source("~/epiConv/epiConv_functions.R")
 mat<-readMM(file="matrix.mtx")
 barcode<-read.table(file="barcodes.tsv",colClass="character")[,1]
 peak<-read.table(file="peaks.bed")
