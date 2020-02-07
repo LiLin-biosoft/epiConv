@@ -85,8 +85,7 @@ plot(res_epiConv@embedding[["samplBlurred"]],pch="+")
 The distance is calculated by `max(Smat)-Smat`. `add.embedding` is used to add the embeddiing to the epiConv object. `obj` specifies the epiConv object, `x` specifies the embedding matrix and `name` specifies the list name used to store the embedding.
 
 
-
-
+---------------------------------------------------------------------------------------------
 First we use `peak_calling.sh` to call high density regions of Tn5 insertions:
 ```
 peak_calling.sh <prefix> <extsize> <fraction of data retained>
