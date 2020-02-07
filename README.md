@@ -46,14 +46,19 @@ freq<-freq.estimate(mat[,lib_size>1000])
 
 res_epiConv<-create.epiconv(meta.features=data.frame(barcode=barcode[lib_size>1000],
                                                      lib_size=lib_size[lib_size>1000]))
-res_epiConv@mat[["peak"]]<-mat[freq!=0,lib_size>1000]
+res_epiConv<-add.mat(obj=res_epiConv,x=mat[freq!=0,lib_size>1000],name="peak")
 ```
 We create an object `res_epiConv` containing the raw data and results. Low quality cells (library size <1000) are removed. 
 + Function `create.epiConv`: create an epiConv object.<br>
   - `meta.features`: the data.frame that contains meta features of single cells (e.g. barcodes and library size).
   - The meta features of cells can be obtained from the object using the form such as `res_epiConv$barcode` or `res_epiConv$lib_size`.
-
+  - The meta features of cells can be obtained from the object using the form such as `res_epiConv$barcode` or `res_epiConv$lib_size`.
 Next, we normalize the matrix by TF-IDF transformation:
++ Function `add.mat`: add mat to the epiConv object.<br>
+  - `obj`: the epiConv object.
+  - `x`: the matrix.
+  - `name`: the list name used to store the matrix.
+
 ```
 mat<-tfidf.norm(mat=res_epiConv@mat[["peak"]],lib_size=res_epiConv$lib_size)
 infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
