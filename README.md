@@ -49,8 +49,8 @@ res_epiConv<-create.epiconv(meta.features=data.frame(barcode=barcode[lib_size>10
 res_epiConv@mat[["peak"]]<-mat[freq!=0,lib_size>1000]
 ```
 We create an object `res_epiConv` containing the raw data and results. Low quality cells (library size <1000) are removed. 
-Function `create.epiConv`: create an epiConv object.<br>
-+ `meta.features`: the data.frame that contains meta features of single cells (e.g. barcodes and library size).<br>
++ Function `create.epiConv`: create an epiConv object.<br>
+  - `meta.features`: the data.frame that contains meta features of single cells (e.g. barcodes and library size).<br>
 The meta features of cells can be obtained from the object using the form such as `res_epiConv$barcode` or `res_epiConv$lib_size`.<br>
 Next, we normalize the matrix by TF-IDF transformation:
 ```
