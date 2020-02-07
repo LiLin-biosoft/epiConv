@@ -24,15 +24,41 @@ We will use one dataset of [PBMCs](https://support.10xgenomics.com/single-cell-a
 
 There are two versions of epiConv: epiConv-full and epiConv-simp. EpiConv-full calculates the similarities between cells from raw Tn5 insertion profiles and epiConv-simp calculates the similarities from binary matrix. We first show the analysis pipeline for epiConv-simp. It is an implemention in R. First we read the source file of epiConv and the data:
 ```
-source("~/epiConv/epiConv_functions.R")
-mat<-readMM(file="~/pbmc5k/matrix.mtx")
-barcode<-read.table(file="~/pbmc5k/barcodes.tsv",colClass="character")[,1]
-peak<-read.table(file="~/pbmc5k/peaks.bed")
+mat<-readMM(file=pars["matrix"])
+barcode<-read.table(file=pars["barcode"],colClass="character")[,1]
+peak<-read.table(file=pars["feature"])
 colnames(peak)<-c("seqnames","start","end")
 rownames(mat)<-paste(peak$seqnames,":",
                      peak$start,"-",
                      peak$end,sep="")
 colnames(mat)<-barcode
+lib.estimate<-function(mat){
+  mat@x[mat@x>1]<-1
+  return(Matrix::colSums(mat))}
+
+res_epiConv<-create.epiconv(meta.features=data.frame(barcode=barcode,
+                                                     lib_size=lib.estimate(mat)))
+res_epiConv@mat[["peak"]]<-mat
+mat<-tfidf.norm(res_epiConv@mat[["peak"]],lib_size=res_epiConv$lib_size)
+infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
+                   sample_size=0.125)
+
+sample_size<-floor(nrow(mat)/8)
+nsim<-30
+sample_matrix<-lapply(1:nsim,function(x) sample(1:nrow(mat),size=sample_size))
+
+Smat<-matrix(0,res_epiConv@ncell,res_epiConv@ncell)
+for(i in sample_matrix){
+  Smat<-Smat+epiConv.matrix(mat=mat[i,],inf_replace=infv)
+}
+Smat<-Smat/nsim
+res_epiConv<-add.similarity(res_epiConv,x=Smat,name="sampl")
+
+Smat<-sim.blur(Smat=res_epiConv[["sampl"]],
+               weight_scale=log10(res_epiConv$lib_size),
+               neighbor_frac=0.25,
+               knn=20)
+res_epiConv<-add.similarity(res_epiConv,x=Smat,name="samplBlurred")
 ```
 
 
