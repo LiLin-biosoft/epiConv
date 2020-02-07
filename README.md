@@ -50,7 +50,7 @@ res_epiConv@mat[["peak"]]<-mat[freq!=0,lib_size>1000]
 ```
 We create an object `res_epiConv` containing the raw data and results. Low quality cells (library size <1000) are removed. 
 Function `create.epiConv`: create an epiConv object.<br>
-+`meta.features`: the data.frame that contains meta features of single cells (e.g. barcodes and library size).<br>
++ `meta.features`: the data.frame that contains meta features of single cells (e.g. barcodes and library size).<br>
 The meta features of cells can be obtained from the object using the form such as `res_epiConv$barcode` or `res_epiConv$lib_size`.<br>
 Next, we normalize the matrix by TF-IDF transformation:
 ```
@@ -58,8 +58,15 @@ mat<-tfidf.norm(mat=res_epiConv@mat[["peak"]],lib_size=res_epiConv$lib_size)
 infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
                    sample_size=0.125,nsim=30)
 ```
-Function `tfidf.norm` is used to perform the TF-IDF transformation.<br>
-`mat`: the MatrixMarket and `lib_size` specifies the library size used in normalization. In the scripts above, we used the total number of accessible regions in each cell as library size. `inf.estimate` is used to learn a small value to replace infinite value in the analysis below. `mat` specifies the matrix. We randomly sample a small fraction of cells from the full matrix to save the running time. `sample_size` specifies the fraction of peaks used in each bootstrap and `nsim` specifies the number of bootstraps. Generally the settings above is suitable for most data.
+Function `tfidf.norm`: perform the TF-IDF transformation.<br>
++ `mat`: the sparse matrix in MatrixMarket format.
++ `lib_size`: library size used in normalization. In the scripts above, we used the total number of accessible regions in each cell as library size. 
+Function `inf.estimate`: learn a small value to replace infinite value in the analysis below.<br>
++ `mat`: the matrix after TF-IDF transformation. We randomly sample a small fraction of cells from the full matrix to save the running time.
++ `sample_size`: the fraction of peaks used in each bootstrap.<br>
++ `nsim`: the number of bootstraps. 
+Generally the settings above is suitable for most data.
+
 The similarities between single cells is based on a bootstrap approach. In each bootstrap we randomly sample some peaks and calculate the similarites between single cells, the final similarities are calculated by averging the results from bootstraps:
 ```
 sample_size<-floor(nrow(mat)/8)
