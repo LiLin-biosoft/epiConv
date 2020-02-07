@@ -26,13 +26,13 @@ There are two versions of epiConv: epiConv-full and epiConv-simp. EpiConv-full c
 ```
 source("~/epiConv/epiConv_functions.R")
 mat<-readMM(file="~/pbmc5k/matrix.mtx")
-barcodes<-read.table(file="~/pbmc5k/barcodes.tsv",colClass="character")[,1]
+barcode<-read.table(file="~/pbmc5k/barcodes.tsv",colClass="character")[,1]
 peak<-read.table(file="~/pbmc5k/peaks.bed")
 colnames(peak)<-c("seqnames","start","end")
 rownames(mat)<-paste(peak$seqnames,":",
                      peak$start,"-",
                      peak$end,sep="")
-colnames(mat)<-barcodes
+colnames(mat)<-barcode
 ```
 
 
