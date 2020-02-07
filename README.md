@@ -39,10 +39,16 @@ lib.estimate<-function(mat){
 res_epiConv<-create.epiconv(meta.features=data.frame(barcode=barcode,
                                                      lib_size=lib.estimate(mat)))
 res_epiConv@mat[["peak"]]<-mat
+```
+The script above created an object `res_epiConv` containing the raw data and results. Next, we normalize the matrix by TF-IDF transformation:
+```
 mat<-tfidf.norm(res_epiConv@mat[["peak"]],lib_size=res_epiConv$lib_size)
 infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
-                   sample_size=0.125)
-
+                   sample_size=0.125,nsim=30)
+```
+inf.estimate is used to learn a small value to replace infinite value in the analysis below. Parameter `mat` specifies the matrix. We randomly sample a small fraction of cells from the full matrix to save the running time. `sample_size` specifies the fraction of peaks used in each bootstrap and `nsim` specifies the number of bootstraps. Generally the settings above is suitable for most data.
+The similarities between single cells is based on a bootstrap approach. In each bootstrap we randomly sample some peaks and calculate the similarites between single cells, the final similarities are calculated by averging the results from bootstraps:
+```
 sample_size<-floor(nrow(mat)/8)
 nsim<-30
 sample_matrix<-lapply(1:nsim,function(x) sample(1:nrow(mat),size=sample_size))
@@ -52,8 +58,12 @@ for(i in sample_matrix){
   Smat<-Smat+epiConv.matrix(mat=mat[i,],inf_replace=infv)
 }
 Smat<-Smat/nsim
-res_epiConv<-add.similarity(res_epiConv,x=Smat,name="sampl")
+res_epiConv<-add.similarity(obj=res_epiConv,x=Smat,name="sampl")
+```
+In the script above, `sample_matrix` contains the peaks for each bootstrap. Function `epiConv.matrix` is used to calculate the similarites. `mat` specifies the matrix used to calculate the similarities. `inf_replaces` should be specified by the value calculated above or an empirical value (e.g. -8). Function `add.simlarity` adds results to `res_epiConv@similarity[["sampl"]]`. `obj` specifies the epiConv object, `x` specifies the similarity matrix and `name` specifies the list name used to store the data. We can simply use the form `res_epiConv[["sampl"]]` to obtain the similarity matrix from the object.
 
+Next we blur the similarities between single cells to denoise the data.
+```
 Smat<-sim.blur(Smat=res_epiConv[["sampl"]],
                weight_scale=log10(res_epiConv$lib_size),
                neighbor_frac=0.25,
