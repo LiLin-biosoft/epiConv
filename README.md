@@ -154,7 +154,7 @@ Also you need to prepare a Tab-delimited file containing valid barocdes named `<
 | | |
 |-|-|
 |1st column|cell barcode|
-|2nd column|custom information (e.g batch, experimental condition, or 1 for all cells if there are not any information)|
+|2nd column|custom information (e.g batch, experimental condition, or 1 for all cells if there are not any information. But you can NOT use "NA" as epiConv will ignore all barcodes with "NA" identy.)|
 
 An example file:
 ```
