@@ -184,7 +184,7 @@ split -a2 -d -l127000 pbmc5k/pbmc5k_peak.bed pbmc5k/pbmc5k_peak.run
 ```
 Here we split the peak file into 10 jobs, each containing 127000 peaks. Like epiConv-simp, we need to randomly sample some peaks to perform bootstraps. We generate the sampling file using `peak_sampl.sh`:
 ```
-~/epiConv/peak_sampl.sh <peak file> <number of bootstraps> <fraction of peaks in each bootstrap> <random seed>
+~/epiConv/peak_sampl.sh <peak file> <number of bootstraps> <fraction of peaks in each bootstrap> <random seed> > <prefix>_sampl.mtx
 ```
 - `<peak file>`: the peak file generated in previous step.<br>
 - `<number of bootstraps>`: number of bootstraps.<br>
@@ -196,9 +196,19 @@ For the PBMC dataset, we use the following command:
 ```
 ~/epiConv/peak_sampl.sh pbmc5k/pbmc5k_peak.bed 30 0.125 12345 >pbmc5k/pbmc5k_sampl.mtx
 ```
-
-
 Then we use `convolution.sh` to calculate the similarites between single cells:
 ```
-
+convolution.sh convolution.sh <prefix> <suffix> <standard deviation of normal distribution> 
 ```
+- `<prefix>`: the prefix of data.
+- `<suffix>`: the suffix of the data, depends on the `split` command called above (e.g. run00, run01,run02...)
+- `<standard deviation of normal distribution>`: decide the interactions between insertions. We think insertions from two cells with distance < 4σ suggest an active regulatory element shared by these two cells.
+
+For the PBMC dataset,we run `convolution.sh` as follows:
+```
+~/epiConv/convolution.sh data/pbmc5k run00 100
+~/epiConv/convolution.sh data/pbmc5k run01 100
+~/epiConv/convolution.sh data/pbmc5k run02 100
+...
+```
+This step can be run in parallel to save the running time. `convolution.sh` will automatically read the inputs. So all input files should be properly named as described above. Each thread requires approximately (n cells)^2/2*(n bootstraps)*4/2^30 GB RAM (e.g. 1.4 GB RAM for 50,00 cells).
