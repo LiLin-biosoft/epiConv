@@ -193,6 +193,9 @@ Here we split the peak file into 10 jobs, each containing 127000 peaks. Like epi
 - `<random seed>`: random seed.<br>
 - `peak_sampl.sh` will directly print to the standard output. 
 
+#### Tips for large datasets
+In order to reduce the required memory for each thread, we can adjust settings of bootstrap. For example, we can set `<number of bootstraps>` to 10 and increase `<fraction of peaks in each bootstrap>` to 0.25 to make sure that each peak is still be sampled > 2x times. Actually the bootstrap step is aimed to reduce the noise for low-sequencing data (e.g. < 2,000 fragment for most cells). Based on our analysis, the results remain similar even without any bootstrap for most datasets (number of bootstrap=1; fraction of peaks=1). So reducing the number of bootstraps won't affect the results but can reduce the required memory.
+
 For the PBMC dataset, we use the following command:
 ```
 ~/epiConv/peak_sampl.sh pbmc5k/pbmc5k_peak.bed 30 0.125 12345 >pbmc5k/pbmc5k_sampl.mtx
@@ -267,7 +270,7 @@ AAACGAACAGGCATCC-1	1	17233
 ```
 The 3rd column is the library size for single cells.
 
-#### Tips for large datasets
-EpiConv-full cannot handle large datasets but can still be performed to dataset with moderate size (e.g. 20,000 cells). In order to reduce the required memory for each thread, we can adjust settings of bootstrap:
-+ `<number of bootstraps>` and `<fraction of peaks in each bootstrap>` in `peak_sampl.sh`: we can reduce the number of bootstraps. For example, we can set `<number of bootstraps>` to 10 and increase `<fraction of peaks in each bootstrap>` to 0.25 to make sure that each peak is still be sampled > 2x times. Actually the bootstrap step is aimed to reduce the noise for low-sequencing data (< 2,000 fragment for most cells). Based on our analysis, the results remain similar even without any bootstrap for most datasets (number of bootstrap=1; fraction of peaks=1). So reducing the number of bootstraps won't affect the results but can reduce the required memory.
+
+
+
 
