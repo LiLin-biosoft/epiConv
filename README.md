@@ -166,13 +166,14 @@ AAACGAACAGGCATCC-1      8
 ...
 ```
 Only valid barcodes will be processed.<br><br>
-  First we use `peak_calling.sh` to call high density regions of Tn5 insertions:
+First we use `peak_calling.sh` to call high density regions of Tn5 insertions:
 ```
 peak_calling.sh <prefix> <extsize> <fraction of data retained>
 ```
-`<prefix>`: the prefix of data.<br>
-`<extsize>`: the same parameter in `MACS2 pileup`. For example, set `<extsize>` to 100 will make MACS2 extend each insertion from both directions by 100bp before pileup insertions.<br>
-`<fraction of data retained>`: specify the fraction of data you want to use in downstream analysis. Based on our preliminary analysis, this parameter need not to be accurately specified but should be close to the fraction of fragments from nucleosome-free regions. For example, you can check the histogram of insertion length from 10X Genomics reporting summary to learn this parameter (the fraction of fragments in first peak in the histogram).<br>
+- `<prefix>`: the prefix of data.<br>
+- `<extsize>`: the same parameter in `MACS2 pileup`. For example, set `<extsize>` to 100 will make MACS2 extend each insertion from both directions by 100bp before pileup insertions.<br>
+- `<fraction of data retained>`:  the fraction of data you want to use in downstream analysis. Based on our preliminary analysis, this parameter need not to be accurately specified but should be close to the fraction of fragments from nucleosome-free regions. For example, you can check the histogram of insertion length from 10X Genomics reporting summary to learn this parameter (the fraction of fragments in first peak in the histogram).
+
 For the PBMC dataset, we use the following command:
 ```
 ~/epiConv/peak_calling.sh pbmc5k/pbmc5k 100 0.7
@@ -181,15 +182,17 @@ When it is finished (~4 hours), there will be a new file `pbmc5k/pbmc5k_peak.bed
 ```
 split -a2 -d -l127000 pbmc5k/pbmc5k_peak.bed pbmc5k/pbmc5k_peak.run
 ```
-Here we split the peak file into 10 jobs, each containing 127000 peaks. Like epiConv-simp, we need to randomly sample some peaks to perform bootstraps:
+Here we split the peak file into 10 jobs, each containing 127000 peaks. Like epiConv-simp, we need to randomly sample some peaks to perform bootstraps. We generate the sampling file using `peak_sampl.sh`:
 ```
 ~/epiConv/peak_sampl.sh <peak file> <number of bootstraps> <fraction of peaks in each bootstrap> <random seed>
 ```
-`<peak file>`: the peak file generated in previous step.<br>
-`<number of bootstraps>`: number of bootstraps.<br>
-`<fraction of peaks in each bootstrap>`: fraction of peaks in each bootstrap.<br>
-`<random seed>`: random seed.<br>
-`peak_sampl.sh` will directly print to the standard output. For the PBMC dataset, we use the following command:
+- `<peak file>`: the peak file generated in previous step.<br>
+- `<number of bootstraps>`: number of bootstraps.<br>
+- `<fraction of peaks in each bootstrap>`: fraction of peaks in each bootstrap.<br>
+- `<random seed>`: random seed.<br>
+- `peak_sampl.sh` will directly print to the standard output. 
+
+For the PBMC dataset, we use the following command:
 ```
 ~/epiConv/peak_sampl.sh pbmc5k/pbmc5k_peak.bed 30 0.125 12345 >pbmc5k/pbmc5k_sampl.mtx
 ```
