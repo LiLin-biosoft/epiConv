@@ -127,7 +127,7 @@ To prepare the input for epiConv-full, we save the list of high-quality barcodes
 ```
 temp<-data.frame(res_epiConv@meta.features$barcode,1)
 write.table(temp,file="pbmc5k/pbcm5k_ident.tsv",row.names=F,col.names=F,quote=F,sep="\t")
-saveRDS(res_epiConv,file="res_epiConv.rds")
+saveRDS(res_epiConv,file="res_epiConv_simp.rds")
 ```
 #### Tips for large datasets
 As R does not support long vectors, error will occur when the dataset is large (e.g. >80,000 cells). The function `epiConv.matrix` and `sim.blur` have the `bin` parameter with default value of 10,000. When the dataset contains more than 10,000 cells, the function will split the matrix into several parts, each containing 10,000 cells. Generally there is no need to change `bin`, but if some memory errors occured, you can tried small values such as 5,000 (e.g. `epiConv.matrix(mat=mat,inf_replace=infv,bin=5000)`). Based on our tests, epiConv requires 520GB memory for dataset with 81,173 cells and 436,206 peaks.
@@ -299,7 +299,7 @@ umap_res<-umap::umap(max(Smat)-Smat,config=umap_settings)$layout
 res_epiConv<-add.embedding(res_epiConv,x=umap_res,name="samplBlurred")
 plot(res_epiConv@embedding[["samplBlurred"]],pch="+")
 
-saveRDS(res_epiConv,file="res_epiConv.rds")
+saveRDS(res_epiConv,file="res_epiConv_full.rds")
 ```
 
 
