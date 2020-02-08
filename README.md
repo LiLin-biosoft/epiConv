@@ -158,11 +158,11 @@ Also you need to prepare a Tab-delimited file containing valid barocdes named `<
 
 An example file:
 ```
-AAACGAAAGACACTTC-1      6
-AAACGAAAGCATACCT-1      2
-AAACGAAAGCGCGTTC-1      5
-AAACGAAAGGAAGACA-1      2
-AAACGAACAGGCATCC-1      8
+AAACGAAAGACACTTC-1      1
+AAACGAAAGCATACCT-1      1
+AAACGAAAGCGCGTTC-1      1
+AAACGAAAGGAAGACA-1      1
+AAACGAACAGGCATCC-1      1
 ...
 ```
 Only valid barcodes will be processed.<br><br>
