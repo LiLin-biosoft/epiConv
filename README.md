@@ -184,7 +184,8 @@ split -a2 -d -l127000 pbmc5k/pbmc5k_peak.bed pbmc5k/pbmc5k_peak.run
 ```
 Here we split the peak file into 10 jobs, each containing 127000 peaks. Like epiConv-simp, we need to randomly sample some peaks to perform bootstraps. We generate the sampling file using `peak_sampl.sh`:
 ```
-~/epiConv/peak_sampl.sh <peak file> <number of bootstraps> <fraction of peaks in each bootstrap> <random seed> > <prefix>_sampl.mtx
+~/epiConv/peak_sampl.sh <peak file> <number of bootstraps> <fraction of peaks in each bootstrap> \
+                        <random seed> > <prefix>_sampl.mtx
 ```
 - `<peak file>`: the peak file generated in previous step.<br>
 - `<number of bootstraps>`: number of bootstraps.<br>
@@ -211,4 +212,4 @@ For the PBMC dataset,we run `convolution.sh` as follows:
 ~/epiConv/convolution.sh data/pbmc5k run02 100
 ...
 ```
-This step can be run in parallel to save the running time. `convolution.sh` will automatically read the inputs. So all input files should be properly named as described above. Each thread requires approximately (n cells)^2/2*(n bootstraps)*4/2^30 GB RAM (e.g. 1.4 GB RAM for 50,00 cells).
+This step can be run in parallel to save the running time. `convolution.sh` will automatically read the inputs. So all input files should be properly named as described above. Each thread requires approximately (n cells)^2/2*(n bootstraps)*4/2^30 GB RAM (e.g. 1.4 GB RAM for 5,000 cells).
