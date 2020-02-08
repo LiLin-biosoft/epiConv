@@ -268,8 +268,39 @@ AAACGAAAGCGCGTTC-1	1	11189
 AAACGAAAGGAAGACA-1	1	35276
 AAACGAACAGGCATCC-1	1	17233
 ```
-The 3rd column is the library size for single cells.
+The 3rd column is the library size for single cells. After that, all steps in bash shell are finished. The following steps are performed in R.
+First we still need to read the scource file and data:
+```
+source("~/epiConv/epiConv_functions.R")
+cell_info<-read.table(file="pbmc5k/pbmc5k.info")
+mfeature<-data.frame(barcode=as.character(cell_info[,1]),
+                     lib_size=cell_info[,3],
+                     ident=factor(cell_info[,2]))
+res_epiConv<-create.epiconv(meta.features=mfeature)
+Smat<-read.csv(file="pbmc5k/pbmc5k_smat.txt",col.names=res_epiConv$barcode,
+               header=F,fill=T,blank.lines.skip=F)
+Smat<-as.matrix(Smat)
+Smat[is.na(Smat)]<-0
+Smat<-Smat+t(Smat)
+Smat<-t(t(Smat)-log10(res_epiConv$lib_size))-log10(res_epiConv$lib_size)
+res_epiConv<-add.similarity(res_epiConv,x=Smat,name="sampl")
+```
+In the script above, we read the un-normalized similarity matrix and normalize it by library size of single cells. Then we blur the similarity matrix and perform low-dimensional embedding:
+```
+Smat<-sim.blur(Smat=res_epiConv[["sampl"]],
+               weight_scale=log10(res_epiConv$lib_size),
+               neighbor_frac=0.25,
+               knn=20)
+res_epiConv<-add.similarity(res_epiConv,x=Smat,name="samplBlurred")
+umap_settings<-umap::umap.defaults
+umap_settings$input<-"dist"
+umap_settings$n_components<-2
+umap_res<-umap::umap(max(Smat)-Smat,config=umap_settings)$layout
+res_epiConv<-add.embedding(res_epiConv,x=umap_res,name="samplBlurred")
+plot(res_epiConv@embedding[["samplBlurred"]],pch="+")
 
+saveRDS(res_epiConv,file="res_epiConv.rds")
+```
 
 
 
