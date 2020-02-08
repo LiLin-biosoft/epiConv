@@ -67,10 +67,10 @@ infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
   - `mat`: the matrix. It must be a Matrix object (created by readMM() or Matrix()).
   - `lib_size`: library size used in normalization. In the scripts above, we used the total number of accessible regions in each cell as library size.
 + `inf.estimate`: learn a small value to replace infinite value in the analysis below.
-  - `mat`: the matrix after TF-IDF transformation. Generally we randomly sample a small fraction of cells from the full matrix to save the running time.
+  - `mat`: the matrix after TF-IDF transformation. We randomly sample a small fraction of cells from the full matrix to save the running time.
   - `sample_size`: the fraction of peaks used in each bootstrap.
   - `nsim`: the number of bootstraps.
-  - Generally the settings above is suitable for most data.
+  - The settings above is suitable for most data.
 
 The similarities between single cells is calculated based on bootstrap approach. In each replicate we randomly sample some peaks and calculate the similarites between single cells, the final similarities are calculated by averging the results from bootstraps:
 ```
