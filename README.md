@@ -242,3 +242,11 @@ After all these is done, we summarize the results from bootstraps and transform 
 gawk -f ~/epiConv/rep_merge.gawk  pbmc5k/pbmc5k_sampled.mat \
 	>pbmc5k/pbmc5k_smat.txt
 ```
+An example for `pbmc5k/pbmc5k_smat.txt`:
+```
+
+1.85311
+1.64461,2.03432
+1.79543,2.22283,1.82333
+1.78524,2.26929,1.97568,2.18579
+```
