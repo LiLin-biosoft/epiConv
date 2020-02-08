@@ -140,6 +140,7 @@ In order to accelerate the running speed, epiConv-full runs in bash shell but so
 |2nd column|starting site of the fragment|
 |3rd column|ending site of the fragment|
 |4th column|cell barcode|
+
 An example file:
 ```
 chr1    10073   10198   CCGCATTGTGTTTCTT-1
@@ -148,9 +149,23 @@ chr1    10085   10302   GGGCCATAGAGATTAC-1
 chr1    10126   10309   CCACGTTCAGTAGTCT-1
 ...
 ```
+Other columns will be ignored. Generally this file will be provided by low level processing tools (e.g. cellranger from 10X Genomics). <br>
+Also you need to prepare a Tab-seperate file containing valid barocdes named `<prefiex>_ident.tsv` (e.g. `pbmc5k/pbmc5k_ident.tsv` generated above). The first column of the file should be valid cell barcodes and the second column can be its identies (e.g. cell type, batch, experimental condition, or simply use 1 for all cells if there are not any information on the identities of cells). 
+| | |
+|-|-|
+|1st column|cell barcode|
+|2nd column|custom information (e.g batch, experimental condition, or 1 for all cells if there are not any information)|
 
-with the following format: first column, chromsome; second column, starting site of the fragment, third column, ending stie of the fragment; fourth column, cell barcodes. Other columns are ignored. Generally this file will be provided by low level processing tools (e.g. cellranger from 10X Genomics). <br><br>
-  Also you need to prepare a file containing valid barocdes named `<prefiex>_ident.tsv` (e.g. `pbmc5k/pbmc5k_ident.tsv` generated above). The first column of the file should be valid cell barcodes and the second column can be its identies (e.g. cell type, batch, experimental condition, or simply use 1 for all cells if there are not any information on the identities of cells). Only valid barcodes will be processed.<br><br>
+An example file:
+```
+AAACGAAAGACACTTC-1      6
+AAACGAAAGCATACCT-1      2
+AAACGAAAGCGCGTTC-1      5
+AAACGAAAGGAAGACA-1      2
+AAACGAACAGGCATCC-1      8
+...
+```
+Only valid barcodes will be processed.<br><br>
   First we use `peak_calling.sh` to call high density regions of Tn5 insertions:
 ```
 peak_calling.sh <prefix> <extsize> <fraction of data retained>
