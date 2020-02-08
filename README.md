@@ -105,7 +105,7 @@ res_epiConv<-add.similarity(res_epiConv,x=Smat,name="samplBlurred")
 ```
 + `sim.blur`: the function used to blur the similarity matrix.
   - `Smat`: the similarity matrix for denoising.
-  - `weight_scale`: the weight for each cell. Generally we think cells with high library size are more reliable and use log10 library size as weights.
+  - `weight_scale`: the weight for each cell. We think cells with high library size are more reliable and use log10 library size as weights.
   - `neighbor_frac`: the fraction of information used from the neighbors of each cell. It should be within 0~1. Higher value means strong denoising while lower value means weak denoising. The default value 0.25 is suitable for most datasets. If you find the downstream result is poor, you can try higher values (e.g. 0.5).
   - `knn`: the number of neighbors for each cell. There is no need to change it unless your data set is very small (e.g. <200 cells).
 
@@ -151,11 +151,11 @@ chr1    10126   10309   CCACGTTCAGTAGTCT-1
 ...
 ```
 Other columns will be ignored. Generally this file will be provided by low level processing tools (e.g. cellranger from 10X Genomics). <br>
-Also you need to prepare a Tab-delimited file containing valid barocdes named `<prefiex>_ident.tsv` (e.g. `pbmc5k/pbmc5k_ident.tsv` generated above). The first column of the file should be valid cell barcodes and the second column can be its identies (e.g. cell type, batch, experimental condition, or simply use 1 for all cells if there are not any information on the identities of cells). 
+Also we need to prepare a Tab-delimited file containing valid barocdes named `<prefix>_ident.tsv` (e.g. `pbmc5k/pbmc5k_ident.tsv` generated above) as follows:
 | | |
 |-|-|
 |1st column|cell barcode|
-|2nd column|custom information (e.g batch, experimental condition, or 1 for all cells if there are not any information. But you can NOT use "NA" as epiConv will ignore all barcodes with "NA" identy.)|
+|2nd column|custom information (e.g batch, experimental condition, or 1 for all cells if there are not any information. But you can NOT use "NA" as epiConv will ignore all barcodes with "NA" identity.)|
 
 An example file:
 ```
