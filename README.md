@@ -227,7 +227,7 @@ In order to acquire the summed similarites between cells, we need to sum the cor
 paste -d " " pbmc5k/pbmc5k_sampled.run?? |\
 	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled.mat
 ```
-In the script above, ncol should be equal to number of columns in `pbmc5k/pbmc5k_sampled.run??`. If you split the running into many small jobs (e.g. 100), this step can also run in parallel as follows (assuming we split it into 100 jobs with suffix from run00 to run99):
+In the script above, `ncol` should be equal to number of columns in `pbmc5k/pbmc5k_sampled.run??`. If you split the running into many small jobs (e.g. 100), this step can also run in parallel as follows (assuming we split it into 100 jobs with suffix from run00 to run99):
 ```
 paste -d " " pbmc5k/pbmc5k_sampled.run0? |\
 	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled0.mat
@@ -251,5 +251,5 @@ An example for `pbmc5k/pbmc5k_smat.txt`:
 1.78524,2.26929,1.97568,2.18579
 .......
 ```
-Note that the first line is blank.
+Note that the first line is blank. Only lower triangle elements are stored.
 
