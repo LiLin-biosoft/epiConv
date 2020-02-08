@@ -150,7 +150,7 @@ chr1    10126   10309   CCACGTTCAGTAGTCT-1
 ...
 ```
 Other columns will be ignored. Generally this file will be provided by low level processing tools (e.g. cellranger from 10X Genomics). <br>
-Also you need to prepare a Tab-seperate file containing valid barocdes named `<prefiex>_ident.tsv` (e.g. `pbmc5k/pbmc5k_ident.tsv` generated above). The first column of the file should be valid cell barcodes and the second column can be its identies (e.g. cell type, batch, experimental condition, or simply use 1 for all cells if there are not any information on the identities of cells). 
+Also you need to prepare a Tab-delimited file containing valid barocdes named `<prefiex>_ident.tsv` (e.g. `pbmc5k/pbmc5k_ident.tsv` generated above). The first column of the file should be valid cell barcodes and the second column can be its identies (e.g. cell type, batch, experimental condition, or simply use 1 for all cells if there are not any information on the identities of cells). 
 | | |
 |-|-|
 |1st column|cell barcode|
@@ -212,4 +212,28 @@ For the PBMC dataset,we run `convolution.sh` as follows:
 ~/epiConv/convolution.sh data/pbmc5k run02 100
 ...
 ```
-This step can be run in parallel to save the running time. `convolution.sh` will automatically read the inputs. So all input files should be properly named as described above. Each thread requires approximately (n cells)^2/2*(n bootstraps)*4/2^30 GB RAM (e.g. 1.4 GB RAM for 5,000 cells).
+This step can be run in parallel to save the running time. `convolution.sh` will automatically read the inputs. So all input files should be properly named as described above. Each thread requires approximately (n cells)^2/2*(n bootstraps)*4/2^30 GB RAM (e.g. 1.4 GB RAM for 5,000 cells).<br>
+After running, the script will generate two files: `<prefix>_cmat.<suffix>` and `<prefix>_sampled.<suffix>`. `<prefix>_cmat.<suffix>` is a binary files contains the pairwise similarities bewtween cells for each peak. `<prefix>_sampled.<suffix>` is a Tab-delimited file contains (ncells)*(ncells-1)/2 rows and nbootstraps columns, with each element containing the similarity between two cells in one bootstrap. An example for `pbmc5k_sampled.run00`:
+```
+10.5113	9.8516	18.8105	6.5908	7.2311 ......
+3.9813	5.4448	1.8991	3.7418	4.0857 ......
+6.8450	12.2343	1.5356	6.6680	2.7696 ......
+0.8218	4.7227	11.9622	1.1415	8.0251 ......
+27.5526	15.5030	29.7605	15.5724	20.6794 ......
+......
+```
+In order to acquire the summed similarites between cells, we need to sum the corressponding elements for each bootstrap using `paste` and `gawk`:
+```
+paste -d " " pbmc5k/pbmc5k_sampled.run?? |\
+	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled.mat
+```
+In the script above, ncol should be equal to number of bootstraps. If you split the running into many small jobs (e.g. 100), this step can also run in parallel as follows (assuming we split it into 100 jobs):
+```
+paste -d " " pbmc5k/pbmc5k_sampled.run0? |\
+	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled0.mat
+paste -d " " pbmc5k/pbmc5k_sampled.run1? |\
+	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled1.mat
+.......
+paste -d " " pbmc5k/pbmc5k_sampled?.mat |\
+	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled.mat
+```
