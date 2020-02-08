@@ -251,5 +251,23 @@ An example for `pbmc5k/pbmc5k_smat.txt`:
 1.78524,2.26929,1.97568,2.18579
 .......
 ```
-Note that the first line is blank. Only lower triangle elements are stored.
+Note that the first line is blank. Only lower triangle elements are stored. The matrix is un-normalized by library size. In order to normalize the matrix, we also need to obtain the number of insertions falling into the peaks for each single cell:
+```
+paste pbmc5k/pbmc5k_lib.run* |\
+	gawk '{sum=0;for(j=1;j<=NF;j++) sum+=$j;print sum}' |\
+	paste pbmc5k/pbmc5k_ident.tsv - > pbmc5k/pbmc5k.info
+```
+In the script above, we calculated the library sizes of single cells and combined them with the identity file. `pbmc5k/pbmc5k.info` shall be like this:
+```
+AAACGAAAGACACTTC-1	1	13154
+AAACGAAAGCATACCT-1	1	22474
+AAACGAAAGCGCGTTC-1	1	11189
+AAACGAAAGGAAGACA-1	1	35276
+AAACGAACAGGCATCC-1	1	17233
+```
+The 3rd column is the library size for single cells.
+
+#### Tips for large datasets
+EpiConv-full cannot handle large datasets but can still be performed to dataset with moderate size (e.g. 20,000 cells). In order to reduce the required memory for each thread, we can adjust settings of bootstrap:
++ `<number of bootstraps>` and `<fraction of peaks in each bootstrap>` in `peak_sampl.sh`: we can reduce the number of bootstraps to accelerate the speed. For example, we can set `<number of bootstraps>` to 10 and increase `<fraction of peaks in each bootstrap>` to 0.25 to make sure that each peak is still be sampled > 2x times. Actually the bootstrap step is aimed to reduce the noise for low-sequencing data (< 2,000 fragment for most cells). Based on our analysis, the results remain similar even without any bootstrap for most datasets (number of bootstrap=1; fraction of peaks=1). So reducing the number of bootstraps won't affect the results but can reduce the required memory.
 
