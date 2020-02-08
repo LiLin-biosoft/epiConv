@@ -61,7 +61,7 @@ Next, we normalize the matrix by TF-IDF transformation:
 ```
 mat<-tfidf.norm(mat=res_epiConv@mat[["peak"]],lib_size=res_epiConv$lib_size)
 infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
-                   sample_size=0.125,nsim=30)
+                   sample_size=0.125,nsim=10)
 ```
 + `tfidf.norm`: perform the TF-IDF transformation.
   - `mat`: the matrix. It must be a Matrix object (created by readMM() or Matrix()).
