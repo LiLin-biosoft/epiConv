@@ -133,7 +133,13 @@ saveRDS(res_epiConv,file="res_epiConv.rds")
 As R does not support long vectors, error will occur when the dataset is large (e.g. >80,000 cells). The function `epiConv.matrix` and `sim.blur` have the `bin` parameter with default value of 10,000. When the dataset contains more than 10,000 cells, the function will split the matrix into several parts, each containing 10,000 cells. Generally there is no need to change `bin`, but if some memory errors occured, you can tried small values such as 5,000 (e.g. `epiConv.matrix(mat=mat,inf_replace=infv,bin=5000)`). Based on our tests, epiConv requires 520GB memory for dataset with 81,173 cells and 436,206 peaks.
 
 ### epiConv-full
-In order to accelerate the running speed, epiConv-full runs in bash shell but some common steps shared by epiConv-simp is performed in R. Its input is a compressed bed file named `<prefix>_frag.bed.gz` (can be read by `zcat`; e.g `pbmc5k/pbmc5k_frag.bed.gz`) with the following format: first column, chromsome; second column, starting site of the fragment, third column, ending stie of the fragment; fourth column, cell barcodes. Other columns are ignored. Generally this file will be provided by low level processing tools (e.g. cellranger from 10X Genomics). <br><br>
+In order to accelerate the running speed, epiConv-full runs in bash shell but some common steps shared by epiConv-simp is performed in R. Its input is a compressed bed file named `<prefix>_frag.bed.gz` (can be read by `zcat`; e.g `pbmc5k/pbmc5k_frag.bed.gz`):
+|First column|chromsome|
+|Second column|starting site of the fragment|
+|Third column|ending site of the fragment|
+|Fourth column|cell barcode|
+
+with the following format: first column, chromsome; second column, starting site of the fragment, third column, ending stie of the fragment; fourth column, cell barcodes. Other columns are ignored. Generally this file will be provided by low level processing tools (e.g. cellranger from 10X Genomics). <br><br>
   Also you need to prepare a file containing valid barocdes named `<prefiex>_ident.tsv` (e.g. `pbmc5k/pbmc5k_ident.tsv` generated above). The first column of the file should be valid cell barcodes and the second column can be its identies (e.g. cell type, batch, experimental condition, or simply use 1 for all cells if there are not any information on the identities of cells). Only valid barcodes will be processed.<br><br>
   First we use `peak_calling.sh` to call high density regions of Tn5 insertions:
 ```
