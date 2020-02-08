@@ -203,21 +203,21 @@ For the PBMC dataset, we use the following command:
 ```
 Then we use `convolution.sh` to calculate the similarites between single cells:
 ```
-convolution.sh convolution.sh <prefix> <suffix> <standard deviation of normal distribution> 
+convolution.sh <prefix> <suffix> <standard deviation of normal distribution> 
 ```
 - `<prefix>`: the prefix of data.
-- `<suffix>`: the suffix of the data, depends on the `split` command called above (e.g. run00, run01,run02...)
+- `<suffix>`: the suffix of the data, depends on the `split` command called above (e.g. run00, run01, run02...)
 - `<standard deviation of normal distribution>`: decide the interactions between insertions. We think insertions from two cells with distance < 4σ suggest an active regulatory element shared by these two cells.
 
 For the PBMC dataset,we run `convolution.sh` as follows:
 ```
-~/epiConv/convolution.sh data/pbmc5k run00 100
-~/epiConv/convolution.sh data/pbmc5k run01 100
-~/epiConv/convolution.sh data/pbmc5k run02 100
+~/epiConv/convolution.sh pbmc5k/pbmc5k run00 100
+~/epiConv/convolution.sh pbmc5k/pbmc5k run01 100
+~/epiConv/convolution.sh pbmc5k/pbmc5k run02 100
 ...
 ```
 This step can be run in parallel to save the running time. `convolution.sh` will automatically read the inputs. So all input files should be properly named as described above.
-After running (each job requires ~4 hours), the script will generate two files: `<prefix>_cmat.<suffix>` and `<prefix>_sampled.<suffix>`. `<prefix>_cmat.<suffix>` is a binary files contains the pairwise similarities bewtween cells for each peak. `<prefix>_sampled.<suffix>` is a Tab-delimited file contains (ncells)*(ncells-1)/2 rows and nbootstraps columns, with each element containing the similarity between two cells in one bootstrap. An example for `pbmc5k_sampled.run00`:
+After running (each job requires ~4 hours), the script will generate two files: `<prefix>_cmat.<suffix>` and `<prefix>_sampled.<suffix>`. `<prefix>_cmat.<suffix>` is a binary files contains the pairwise similarities bewtween cells for each peak. `<prefix>_sampled.<suffix>` is a Tab-delimited file contains (ncells)*(ncells-1)/2 rows and nbootstraps columns, with each element containing the similarity between two cells in one bootstrap. An example for `pbmc5k/pbmc5k_sampled.run00`:
 ```
 10.5113	9.8516	18.8105	6.5908	7.2311 ......
 3.9813	5.4448	1.8991	3.7418	4.0857 ......
@@ -226,7 +226,7 @@ After running (each job requires ~4 hours), the script will generate two files: 
 27.5526	15.5030	29.7605	15.5724	20.6794 ......
 ......
 ```
-In order to acquire the summed similarites between cells, we need to sum the corressponding elements for each job using `paste` and `gawk`:
+In order to acquire the similarites between cells, we need to sum the corressponding elements for each job using `paste` and `gawk`:
 ```
 paste -d " " pbmc5k/pbmc5k_sampled.run?? |\
 	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled.mat
@@ -234,14 +234,16 @@ paste -d " " pbmc5k/pbmc5k_sampled.run?? |\
 In the script above, `ncol` should be equal to number of columns in `pbmc5k/pbmc5k_sampled.run??`. If you split the running into many small jobs (e.g. 100), this step can also run in parallel as follows (assuming we split it into 100 jobs with suffix from run00 to run99):
 ```
 paste -d " " pbmc5k/pbmc5k_sampled.run0? |\
-	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled0.mat
+	gawk -f ~/epiConv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled0.mat
 paste -d " " pbmc5k/pbmc5k_sampled.run1? |\
-	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled1.mat
+	gawk -f ~/epiConv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled1.mat
 .......
+paste -d " " pbmc5k/pbmc5k_sampled.run9? |\
+	gawk -f ~/epiConv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled9.mat
 paste -d " " pbmc5k/pbmc5k_sampled?.mat |\
-	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled.mat
+	gawk -f ~/epiConv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled.mat
 ```
-After all these is done, we summarize the results from bootstraps and transform the data into a ncellXncell square matrix:
+Then, we summarize the results from bootstraps and transform the data into a ncell x ncell square matrix:
 ```
 gawk -f ~/epiConv/rep_merge.gawk  pbmc5k/pbmc5k_sampled.mat \
 	>pbmc5k/pbmc5k_smat.txt
@@ -286,7 +288,7 @@ Smat<-Smat+t(Smat)
 Smat<-t(t(Smat)-log10(res_epiConv$lib_size))-log10(res_epiConv$lib_size)
 res_epiConv<-add.similarity(res_epiConv,x=Smat,name="sampl")
 ```
-In the script above, we read the un-normalized similarity matrix and normalize it by library size of single cells. Then we blur the similarity matrix and perform low-dimensional embedding:
+In the script above, we read the un-normalized similarity matrix and normalize it by library size of single cells (each element needs to be normalized by the library size of corresponding row and column). Then we blur the similarity matrix and perform low-dimensional embedding:
 ```
 Smat<-sim.blur(Smat=res_epiConv[["sampl"]],
                weight_scale=log10(res_epiConv$lib_size),
