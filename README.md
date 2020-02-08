@@ -173,7 +173,7 @@ peak_calling.sh <prefix> <extsize> <fraction of data retained>
 ```
 - `<prefix>`: the prefix of data.<br>
 - `<extsize>`: the same parameter in `MACS2 pileup`. For example, set `<extsize>` to 100 will make MACS2 extend each insertion from both directions by 100bp before pileup insertions.<br>
-- `<fraction of data retained>`:  the fraction of data you want to use in downstream analysis. Based on our preliminary analysis, this parameter need not to be accurately specified but should be close to the fraction of fragments from nucleosome-free regions. For example, you can check the histogram of insertion length from 10X Genomics reporting summary to learn this parameter (the fraction of fragments in first peak in the histogram).
+- `<fraction of data retained>`:  the fraction of data for downstream analysis. This parameter need not to be accurately specified but should be close to the fraction of fragments from nucleosome-free regions. For example, you can check the histogram of insertion length from 10X Genomics reporting summary to learn this parameter (the fraction of fragments in first peak in the histogram).
 
 For the PBMC dataset, we use the following command:
 ```
@@ -192,10 +192,10 @@ Here we split the peak file into 10 jobs, each containing 127000 peaks. Like epi
 - `<number of bootstraps>`: number of bootstraps.<br>
 - `<fraction of peaks in each bootstrap>`: fraction of peaks in each bootstrap.<br>
 - `<random seed>`: random seed.<br>
-- `peak_sampl.sh` will directly print to the standard output. 
+- `peak_sampl.sh` will directly print to the standard output. We write the results into `<prefix>_sampl.mtx`.
 
 #### Tips for large datasets
-In order to reduce the required memory for each thread, we can adjust settings of bootstrap. For example, we can set `<number of bootstraps>` to 10 and increase `<fraction of peaks in each bootstrap>` to 0.25 to make sure that each peak is still be sampled > 2x times. Actually the bootstrap step is aimed to reduce the noise for low-sequencing data (e.g. < 2,000 fragment for most cells). Based on our analysis, the results remain similar even without any bootstrap for most datasets (number of bootstrap=1; fraction of peaks=1). So reducing the number of bootstraps won't affect the results but can reduce the required memory.
+In following steps, each job requires approximately (n cells)^2/2*(n bootstraps)*4/2^30 GB RAM (e.g. 1.4 GB RAM for 5,000 cells). In order to reduce the required memory for each thread when the dataset is large, we can adjust settings of bootstrap. For example, we can set `<number of bootstraps>` to 10 and increase `<fraction of peaks in each bootstrap>` to 0.25 to make sure that each peak is still be sampled > 2x times. Actually the bootstrap step is aimed to reduce the noise for low-sequencing data (e.g. < 2,000 fragment for most cells). Based on our analysis, the results remain similar even without any bootstrap for most datasets (number of bootstrap=1; fraction of peaks=1). So reducing the number of bootstraps won't affect the results but can reduce the required memory.
 
 For the PBMC dataset, we use the following command:
 ```
@@ -216,7 +216,7 @@ For the PBMC dataset,we run `convolution.sh` as follows:
 ~/epiConv/convolution.sh data/pbmc5k run02 100
 ...
 ```
-This step can be run in parallel to save the running time. `convolution.sh` will automatically read the inputs. So all input files should be properly named as described above. Each thread requires approximately (n cells)^2/2*(n bootstraps)*4/2^30 GB RAM (e.g. 1.4 GB RAM for 5,000 cells).<br>
+This step can be run in parallel to save the running time. `convolution.sh` will automatically read the inputs. So all input files should be properly named as described above.
 After running (each job requires ~4 hours), the script will generate two files: `<prefix>_cmat.<suffix>` and `<prefix>_sampled.<suffix>`. `<prefix>_cmat.<suffix>` is a binary files contains the pairwise similarities bewtween cells for each peak. `<prefix>_sampled.<suffix>` is a Tab-delimited file contains (ncells)*(ncells-1)/2 rows and nbootstraps columns, with each element containing the similarity between two cells in one bootstrap. An example for `pbmc5k_sampled.run00`:
 ```
 10.5113	9.8516	18.8105	6.5908	7.2311 ......
