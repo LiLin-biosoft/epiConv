@@ -222,12 +222,12 @@ After running, the script will generate two files: `<prefix>_cmat.<suffix>` and 
 27.5526	15.5030	29.7605	15.5724	20.6794 ......
 ......
 ```
-In order to acquire the summed similarites between cells, we need to sum the corressponding elements for each bootstrap using `paste` and `gawk`:
+In order to acquire the summed similarites between cells, we need to sum the corressponding elements for each job using `paste` and `gawk`:
 ```
 paste -d " " pbmc5k/pbmc5k_sampled.run?? |\
 	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled.mat
 ```
-In the script above, ncol should be equal to number of bootstraps. If you split the running into many small jobs (e.g. 100), this step can also run in parallel as follows (assuming we split it into 100 jobs):
+In the script above, ncol should be equal to number of columns in `pbmc5k/pbmc5k_sampled.run??`. If you split the running into many small jobs (e.g. 100), this step can also run in parallel as follows (assuming we split it into 100 jobs with suffix from run00 to run99):
 ```
 paste -d " " pbmc5k/pbmc5k_sampled.run0? |\
 	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled0.mat
@@ -236,4 +236,9 @@ paste -d " " pbmc5k/pbmc5k_sampled.run1? |\
 .......
 paste -d " " pbmc5k/pbmc5k_sampled?.mat |\
 	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled.mat
+```
+After all these is done, we summarize the results from bootstraps and transform the data into a ncellXncell square matrix:
+```
+gawk -f ~/epiConv/rep_merge.gawk  pbmc5k/pbmc5k_sampled.mat \
+	>pbmc5k/pbmc5k_smat.txt
 ```
