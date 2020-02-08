@@ -134,10 +134,20 @@ As R does not support long vectors, error will occur when the dataset is large (
 
 ### epiConv-full
 In order to accelerate the running speed, epiConv-full runs in bash shell but some common steps shared by epiConv-simp is performed in R. Its input is a compressed bed file named `<prefix>_frag.bed.gz` (can be read by `zcat`; e.g `pbmc5k/pbmc5k_frag.bed.gz`):<br>
-|First column|chromsome|
-|Second column|starting site of the fragment|
-|Third column|ending site of the fragment|
-|Fourth column|cell barcode|
+| | |
+|-|-|
+|1st column|chromsome|
+|2nd column|starting site of the fragment|
+|3rd column|ending site of the fragment|
+|4th column|cell barcode|
+An example file:
+```
+chr1    10073   10198   CCGCATTGTGTTTCTT-1
+chr1    10085   10198   GAGACTTCAGCAACAG-1
+chr1    10085   10302   GGGCCATAGAGATTAC-1
+chr1    10126   10309   CCACGTTCAGTAGTCT-1
+...
+```
 
 with the following format: first column, chromsome; second column, starting site of the fragment, third column, ending stie of the fragment; fourth column, cell barcodes. Other columns are ignored. Generally this file will be provided by low level processing tools (e.g. cellranger from 10X Genomics). <br><br>
   Also you need to prepare a file containing valid barocdes named `<prefiex>_ident.tsv` (e.g. `pbmc5k/pbmc5k_ident.tsv` generated above). The first column of the file should be valid cell barcodes and the second column can be its identies (e.g. cell type, batch, experimental condition, or simply use 1 for all cells if there are not any information on the identities of cells). Only valid barcodes will be processed.<br><br>
