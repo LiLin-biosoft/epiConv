@@ -92,7 +92,7 @@ In the script above, `sample_matrix` contains the peaks for each bootstrap. `Sma
   - `obj`: the epiConv object.
   - `x`: the similarity matrix.
   - `name`: the list name used to store the similarity matrix.
-  - The similarity matrix can be obtained from the object using the form such as `res_epiConv$[["sampl"]]`.
+  - The similarity matrix can be obtained from the object using the form such as `res_epiConv[["sampl"]]`.
 
 Next we blur the similarities between single cells to denoise the data.
 ```
