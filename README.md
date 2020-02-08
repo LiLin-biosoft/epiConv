@@ -249,4 +249,7 @@ An example for `pbmc5k/pbmc5k_smat.txt`:
 1.64461,2.03432
 1.79543,2.22283,1.82333
 1.78524,2.26929,1.97568,2.18579
+.......
 ```
+Note that the first line is blank.
+
