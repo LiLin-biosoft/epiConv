@@ -134,7 +134,7 @@ saveRDS(res_epiConv,file="pbmc5k/res_epiConv_simp.rds")
 As R does not support long vectors, error will occur when the dataset is large (e.g. >80,000 cells). The function `epiConv.matrix` and `sim.blur` have the `bin` parameter with default value of 10,000. When the dataset contains more than 10,000 cells, the function will split the matrix into several parts, each containing 10,000 cells. Generally there is no need to change `bin`, but if some memory error occurs, you can try small values such as 5,000 (e.g. `epiConv.matrix(mat=mat,inf_replace=infv,bin=5000)`). Based on our tests, epiConv requires 520GB memory for dataset with 81,173 cells and 436,206 peaks.
 
 ### epiConv-full
-In order to accelerate the running speed, epiConv-full runs in bash shell but some common steps shared by epiConv-simp is performed in R. Its input is a compressed bed file named `<prefix>_frag.bed.gz` (can be read by `zcat`; e.g `pbmc5k/pbmc5k_frag.bed.gz`):<br>
+In order to accelerate the running speed, epiConv-full runs in bash shell but some common steps are performed in R. Its input is a gzip-compressed bed file named `<prefix>_frag.bed.gz` (e.g `pbmc5k/pbmc5k_frag.bed.gz`):
 | | |
 |-|-|
 |1st column|chromsome|
@@ -151,7 +151,7 @@ chr1    10126   10309   CCACGTTCAGTAGTCT-1
 ...
 ```
 Other columns will be ignored. Generally this file will be provided by low level processing tools (e.g. cellranger from 10X Genomics). <br>
-Also we need to prepare a Tab-delimited file containing valid barocdes named `<prefix>_ident.tsv` (e.g. `pbmc5k/pbmc5k_ident.tsv` generated above) as follows:
+Also we need to prepare a Tab-delimited file containing valid barocdes named `<prefix>_ident.tsv` (e.g. `pbmc5k/pbmc5k_ident.tsv`) as follows:
 | | |
 |-|-|
 |1st column|cell barcode|
@@ -192,10 +192,10 @@ Here we split the peak file into 10 jobs, each containing 127000 peaks. Like epi
 - `<number of bootstraps>`: number of bootstraps.<br>
 - `<fraction of peaks in each bootstrap>`: fraction of peaks in each bootstrap.<br>
 - `<random seed>`: random seed.<br>
-- `peak_sampl.sh` will directly print to the standard output. We write the results into `<prefix>_sampl.mtx`.
+- `peak_sampl.sh` will directly print results to the standard output. We write the results into `<prefix>_sampl.mtx`.
 
 #### Tips for large datasets
-In following steps, each job requires approximately (n cells)^2/2*(n bootstraps)*4/2^30 GB RAM (e.g. 1.4 GB RAM for 5,000 cells). In order to reduce the required memory for each thread when the dataset is large, we can adjust settings of bootstrap. For example, we can set `<number of bootstraps>` to 10 and increase `<fraction of peaks in each bootstrap>` to 0.25 to make sure that each peak is still be sampled > 2x times. Actually the bootstrap step is aimed to reduce the noise for low-sequencing data (e.g. < 2,000 fragment for most cells). Based on our analysis, the results remain similar even without any bootstrap for most datasets (number of bootstrap=1; fraction of peaks=1). So reducing the number of bootstraps won't affect the results but can reduce the required memory.
+In following steps, each job requires approximately (n cells)^2/2*(n bootstraps)*4/2^30 GB RAM (e.g. 1.4 GB RAM for 5,000 cells). In order to reduce the required memory when the dataset is large, we can adjust bootstrap settings. For example, we can set `<number of bootstraps>` to 10 and increase `<fraction of peaks in each bootstrap>` to 0.25 to make sure that each peak is sampled > 2x times. Actually the bootstrap step is aimed to reduce the noise for shallow-sequencing data (e.g. < 2,000 fragment for most cells). Based on our analysis, the results remain similar even without any bootstrap for most datasets (number of bootstrap=1; fraction of peaks=1). So reducing the number of bootstraps won't affect the results but can reduce the required memory.
 
 For the PBMC dataset, we use the following command:
 ```
@@ -207,7 +207,7 @@ convolution.sh <prefix> <suffix> <standard deviation of normal distribution>
 ```
 - `<prefix>`: the prefix of data.
 - `<suffix>`: the suffix of the data, depends on the `split` command called above (e.g. run00, run01, run02...)
-- `<standard deviation of normal distribution>`: decide the interactions between insertions. We think insertions from two cells with distance < 4σ suggest an active regulatory element shared by these two cells.
+- `<standard deviation of normal distribution>`: affect the interactions between insertions. We think insertions from two cells with distance < 4σ may suggest a shared regulatory element.
 
 For the PBMC dataset,we run `convolution.sh` as follows:
 ```
@@ -217,7 +217,7 @@ For the PBMC dataset,we run `convolution.sh` as follows:
 ...
 ```
 This step can be run in parallel to save the running time. `convolution.sh` will automatically read the inputs. So all input files should be properly named as described above.
-After running (each job requires ~4 hours), the script will generate two files: `<prefix>_cmat.<suffix>` and `<prefix>_sampled.<suffix>`. `<prefix>_cmat.<suffix>` is a binary files contains the pairwise similarities bewtween cells for each peak. `<prefix>_sampled.<suffix>` is a Tab-delimited file contains (ncells)*(ncells-1)/2 rows and nbootstraps columns, with each element containing the similarity between two cells in one bootstrap. An example for `pbmc5k/pbmc5k_sampled.run00`:
+After running (each job requires ~4 hours), the script will generate two files: `<prefix>_cmat.<suffix>` and `<prefix>_sampled.<suffix>`. `<prefix>_cmat.<suffix>` is a binary file contains the pairwise similarities bewtween cells for each peak. `<prefix>_sampled.<suffix>` is a Tab-delimited file contains (ncells)*(ncells-1)/2 rows and nbootstraps columns, with each element containing the similarity between two cells in one bootstrap. An example for `pbmc5k/pbmc5k_sampled.run00`:
 ```
 10.5113	9.8516	18.8105	6.5908	7.2311 ......
 3.9813	5.4448	1.8991	3.7418	4.0857 ......
@@ -226,12 +226,12 @@ After running (each job requires ~4 hours), the script will generate two files: 
 27.5526	15.5030	29.7605	15.5724	20.6794 ......
 ......
 ```
-In order to acquire the similarites between cells, we need to sum the corressponding elements for each job using `paste` and `gawk`:
+In order to summarize the results from each small job, we need to sum the corressponding elements for each job using `paste` and `gawk`:
 ```
 paste -d " " pbmc5k/pbmc5k_sampled.run?? |\
 	gawk -f ~/epiCOnv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled.mat
 ```
-In the script above, `ncol` should be equal to number of columns in `pbmc5k/pbmc5k_sampled.run??`. If you split the running into many small jobs (e.g. 100), this step can also run in parallel as follows (assuming we split it into 100 jobs with suffix from run00 to run99):
+In the script above, `ncol` should be equal to number of columns in `pbmc5k/pbmc5k_sampled.run??`. If you split the task into many jobs (e.g. 100), this step can also run in parallel as follows (assuming we split it into 100 jobs with suffix from run00 to run99):
 ```
 paste -d " " pbmc5k/pbmc5k_sampled.run0? |\
 	gawk -f ~/epiConv/run_merge.gawk ncol=30 >pbmc5k/pbmc5k_sampled0.mat
@@ -257,7 +257,7 @@ An example for `pbmc5k/pbmc5k_smat.txt`:
 1.78524,2.26929,1.97568,2.18579
 .......
 ```
-Note that the first line is blank. Only lower triangle elements are stored. The matrix is un-normalized by library size. In order to normalize the matrix, we also need to obtain the number of insertions falling into the peaks for each single cell:
+Note that the first line is blank. Only lower triangle elements are stored. The matrix is not normalized yet. In order to normalize the matrix, we need to obtain the number of insertions falling into the peaks for each single cell:
 ```
 paste pbmc5k/pbmc5k_lib.run* |\
 	gawk '{sum=0;for(j=1;j<=NF;j++) sum+=$j;print sum}' |\
@@ -288,7 +288,7 @@ Smat<-Smat+t(Smat)
 Smat<-t(t(Smat)-log10(res_epiConv$lib_size))-log10(res_epiConv$lib_size)
 res_epiConv<-add.similarity(res_epiConv,x=Smat,name="sampl")
 ```
-In the script above, we read the un-normalized similarity matrix and normalize it by library size of single cells (each element needs to be normalized by the library size of corresponding row and column). Then we blur the similarity matrix and perform low-dimensional embedding:
+In the script above, we read the similarity matrix and normalize it by library size of single cells (each element needs to be normalized by the library size of corresponding row and column). Then we blur the similarity matrix and perform low-dimensional embedding:
 ```
 Smat<-sim.blur(Smat=res_epiConv[["sampl"]],
                weight_scale=log10(res_epiConv$lib_size),
