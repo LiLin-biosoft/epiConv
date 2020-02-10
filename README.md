@@ -307,15 +307,44 @@ saveRDS(res_epiConv,file="pbmc5k/res_epiConv_full.rds")
 
 ### detect differentially accessible peaks
 
-We cluster the cells using densityClust package and compare the results from epiConv-full and epiConv-simp:
+Before differential analysis, we cluster the cells using densityClust package and compare the results from epiConv-full and epiConv-simp:
 ```
+source("~/script/epiConv_functions.R")
+res_epiConv_simp<-readRDS(file="pbmc5k/res_epiConv_simp.rds")
+res_epiConv_full<-readRDS(file="pbmc5k/res_epiConv_full.rds")
+res_epiConv_full<-add.mat(obj=res_epiConv_full,x=res_epiConv_simp@mat[["peak"]],name="peak")
+
+library(densityClust)
+ncluster<-8
+dclust_obj<-densityClust(res_epiConv_full@embedding[["samplBlurred"]],gaussian=T)
+rho_cut<-quantile(dclust_obj$rho,0.5)
+delta_cut<-sort(dclust_obj$delta[dclust_obj$rho>=rho_cut],decreasing=T)[ncluster+1]
+clust<-findClusters(dclust_obj,rho=rho_cut,delta=delta_cut)$clusters
+plot(res_epiConv_full@embedding[["samplBlurred"]],pch="+",col=rainbow(ncluster)[clust])
+legend("bottomright",legend=1:ncluster,col=rainbow(ncluster),cex=2,pch="+")
+plot(res_epiConv_simp@embedding[["samplBlurred"]],pch="+",col=rainbow(ncluster)[clust])
+legend("bottomright",legend=1:ncluster,col=rainbow(ncluster),cex=2,pch="+")
 ```
 We can see that epiConv-full has higher resolution than epiConv-simp but the results are similar. For small datasets, epiConv-full provides better results. But for large datasets, epiConv-simp is much faster. For large datasets, we can use epiConv-simp to get crude clustering and apply epiConv-full to clusters of interests. In the following analyzes, we use the similarity matrix from epiConv-full.<br>
 Unlike most algorithms of differential analysis for scRNA-seq or scATAC-seq, our algorithm does not requires single cells to be clustered into several groups. For each single cell, our algorithm selects peaks that tend to be accessible in its neighbor cells. The algorithm gives each peak in each single cell a score showing the enrichment of accessbile cells within the neighbors (z-scores). In order to perform the analysis, we first need some preparation: 
 ```
+umap_settings<-umap::umap.defaults
+umap_settings$input<-"dist"
+umap_settings$n_components<-1
+Smat<-res_epiConv_full[["samplBlurred"]]
+umap_res<-umap::umap(as.matrix(max(Smat)-Smat),config=umap_settings)$layout
+res_epiConv_full<-add.embedding(obj=res_epiConv_full,x=umap_res,name="pbmc5k1d")
+
+bulk<-sapply(1:ncluster,function(x) Matrix::rowSums(res_epiConv_full@mat[["peak"]][,clust==x]))
+bulk<-t(t(bulk)/colSums(bulk)*median(colSums(bulk)))
 ```
 In the script above, we aggregate the binary matrix by clusters and embed single cells into one-dimensional space. Next, we calculate the z-scores:
 ```
+freq<-freq.estimate(res_epiConv_full@mat[["peak"]])
+zsingle<-zscore.single(mat=res_epiConv_full@mat[["peak"]][freq>0.01,],
+                     Smat=res_epiConv_full[["samplBlurred"]],
+                     qt=0.05,
+                     lib_size=res_epiConv_full$lib_size)
 ```
 + `zscore.single`: the function used to calculate the z-scores.
   - `mat`: the accessibility matrix.
@@ -325,16 +354,68 @@ In the script above, we aggregate the binary matrix by clusters and embed single
   
 When the cluster information is available, we can average the z-scores of single cells in each cluster and sort them in decreasing order to get some markers for each cluster. Here, we select 5 markers for each cluster and compare z-scores with aggregated bulk profiles:
 ```
+zmean<-sapply(1:ncluster,function(x) rowMeans(zsingle[,clust==x]))
+marker<-as.vector(apply(zmean,2,function(x) names(x)[order(x,decreasing=T)[1:5]]))
+
+odr<-order(res_epiConv_full@embedding[["pbmc5k1d"]])
+heatmap.plus::heatmap.plus(zsingle[marker,odr],
+                           col=colorRampPalette(c("lightblue","black","yellow"))(32),
+                           labCol=F,
+                           labRow=F,
+                           ColSideColors=cbind(rainbow(ncluster)[clust[odr]],"white"),
+                           Rowv=NA,
+                           Colv=NA)
+heatmap.plus::heatmap.plus(bulk[marker,],
+                           col=colorRampPalette(c("lightblue","black","yellow"))(32),
+                           labCol=F,
+                           labRow=F,
+                           ColSideColors=cbind(rainbow(ncluster),"white"),
+                           Rowv=NA,
+                           Colv=NA)
 ```
-One novel feature of our algorithm is that we can select DE peaks even without clustering. If the number of cells showing high z-scores exceeds the threshold for one peak, we consider it to be differentially accessible. From the heatmap above, we can easily find that these markers will be selected without clustering given that there are always a fraction of cells with high z-scores in these peaks.<br>
 The ATAC-seq does not match the expression data very well. But we can still examine the promoters of some known marker genes to know the identies of cells:
 ```
+cmarker<-c("chr17:38721364-38722083", ##CCR7
+	  "chr11:118175174-118175840", ##CD3E
+	  "chr2:87034420-87036115", ##CD8A
+	  "chr19:51875736-51876612") ##NKG7
+heatmap.plus::heatmap.plus(zsingle[cmarker,odr],
+                           col=colorRampPalette(c("lightblue","black","yellow"))(32),
+                           labCol=F,
+                           labRow=c("CCR7","CD3E","CD8A","NKG7"),
+                           ColSideColors=cbind(rainbow(ncluster)[clust[odr]],"white"),
+                           Rowv=NA,
+                           Colv=NA)
 ```
-Next, we will show another example of detecting differentially accessible peaks from highly similar cells. We note that CD8 T cells and NK cells are close to each other and share many common marker peaks.
+One novel feature of our algorithm is that we can select DE peaks even without clustering. If the number of cells showing high z-scores exceeds the threshold for one peak, we consider it to be differentially accessible. From the heatmap above, we can easily find that these markers will be selected without clustering given that there are always a fraction of cells with high z-scores in these peaks.<br>
+Next, we will show another example. We note that CD8 T cells and NK cells are close to each other and share many common marker peaks. Here we want to find the differentially accessible peaks within CD8 T cells and NK cells:
 ```
-```
-In the script above, we perform differential analysis on cluster 4 and 8 (CD8 T cells and NK cells). As the cell number is low (624 cells), we increase `qt` parameter in `zscore.single` to 0.1 in order to reduce the noise. Peaks with z-scores > 2 in at least 10% cells are selected as DE peaks and embedded to 1D space in order to cluster peaks with similar accessibility patterns together. Gernerally it is better to exclude other irrelevant cells as we cannot avoid to select DE peaks from these cells.<br>
+retain<-which(clust%in%c(4,8))
+freq<-freq.estimate(res_epiConv_full@mat[["peak"]][,retain])
+zsingle<-zscore.single(mat=res_epiConv_full@mat[["peak"]][freq>0.01,retain],
+                       Smat=res_epiConv_full[["samplBlurred"]][retain,retain],
+                       qt=0.1,
+                       lib_size=res_epiConv_full$lib_size[retain])
+DEfrac<-apply(zsingle,1,function(x) sum(x>2)/length(x))
+marker<-rownames(zsingle)[DEfrac>0.1]
 
+dis<-1-cor(t(zsingle[marker,]),method="spearman")
+umap_settings<-umap::umap.defaults
+umap_settings$input<-"dist"
+umap_settings$n_components<-1
+xcoor<-umap::umap(dis,config=umap_settings)$layout[,1]
+peak_odr<-order(xcoor)
+
+odr<-order(res_epiConv_full@embedding[["pbmc5k1d"]][retain])
+heatmap.plus::heatmap.plus(zsingle[marker[peak_odr],odr],
+                           col=colorRampPalette(c("lightblue","black","yellow"))(32),
+                           labCol=F,
+                           labRow=F,
+                           ColSideColors=cbind(rainbow(ncluster)[clust[retain][odr]],"white"),
+                           Rowv=NA,
+                           Colv=NA)
+```
+In the script above, we perform differential analysis on cluster 4 and 8 (CD8 T cells and NK cells). Gernerally it is better to exclude  irrelevant cells as we cannot avoid selecting DE peaks from them. As the cell number is low (624 cells), we increase `qt` parameter in `zscore.single` to 0.1 in order to reduce the noise. Peaks with z-scores > 2 in at least 10% cells are selected as DE peaks and are embedded to 1D space in order to cluster peaks with similar patterns together. The majority of peaks are differentially accessible between CD8 T cells and NK cells but the chromtin states of some peaks are not uniform even within clusters.
 
 
 
