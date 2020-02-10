@@ -70,9 +70,9 @@ infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
   - `mat`: the matrix after TF-IDF transformation. We randomly sample a small fraction of cells from the full matrix to save the running time.
   - `sample_size`: the fraction of peaks used in each bootstrap.
   - `nsim`: the number of bootstraps.
-  - The settings above is suitable for most data.
+  - The settings above are suitable for most data.
 
-The similarities between single cells is calculated based on bootstrap approach. In each replicate we randomly sample some peaks and calculate the similarites between single cells, the final similarities are calculated by averging the results from bootstraps:
+The similarities between single cells are calculated based on bootstrap approach. We randomly sample some peaks and calculate the similarites between single cells in each replicate and then average the results from replicates:
 ```
 sample_size<-floor(nrow(mat)/8)
 nsim<-30
@@ -85,17 +85,17 @@ for(i in sample_matrix){
 Smat<-Smat/nsim
 res_epiConv<-add.similarity(obj=res_epiConv,x=Smat,name="sampl")
 ```
-In the script above, `sample_matrix` contains the peaks for each bootstrap. `Smat` contains the similarities between single cells.
-+ `epiConv.matrix`: the function that calculates the similarites.
+In the script above, `sample_matrix` contains the peaks in each replicate. `Smat` contains the calculated similarities between single cells.
++ `epiConv.matrix`: calculate the similarites.
   - `mat`: the matrix used to calculate the similarities.
-  - `inf_replace`: the value used to replace infinity. It can be calculated above or used as an empirical value (e.g. -8). 
+  - `inf_replace`: the value used to replace log10(0). We can the value calculated above or an empirical value (e.g. -8). 
 + `add.simlarity`: add similarity matrix to the epiConv object.
   - `obj`: the epiConv object.
   - `x`: the similarity matrix.
   - `name`: the list name used to store the similarity matrix.
-  - The similarity matrix can be obtained from the object using the form such as `res_epiConv[["sampl"]]`.
+  - The similarity matrix can be obtained from the object using the form `res_epiConv[["sampl"]]`.
 
-Next we blur the similarities between single cells to denoise the data.
+Next we blur the similarities between single cells to denoise the data:
 ```
 Smat<-sim.blur(Smat=res_epiConv[["sampl"]],
                weight_scale=log10(res_epiConv$lib_size),
@@ -106,7 +106,7 @@ res_epiConv<-add.similarity(res_epiConv,x=Smat,name="samplBlurred")
 + `sim.blur`: the function used to blur the similarity matrix.
   - `Smat`: the similarity matrix for denoising.
   - `weight_scale`: the weight for each cell. We think cells with high library size are more reliable and use log10 library size as weights.
-  - `neighbor_frac`: the fraction of information used from the neighbors of each cell. It should be within 0~1. Higher value means strong denoising while lower value means weak denoising. The default value 0.25 is suitable for most datasets. If you find the downstream result is poor, you can try higher values (e.g. 0.5).
+  - `neighbor_frac`: the fraction of information from the neighbors of each cell. It should be within 0~1. Higher value means strong denoising while lower value means weak denoising. The default value 0.25 is suitable for most datasets. If you find the downstream embedding result is poor, you can try higher values (e.g. 0.5).
   - `knn`: the number of neighbors for each cell. There is no need to change it unless your data set is very small (e.g. <200 cells).
 
 Finally we use umap to learn the low-dimensional embedding of the data:
@@ -119,7 +119,7 @@ res_epiConv<-add.embedding(obj=res_epiConv,x=umap_res,name="samplBlurred")
 plot(res_epiConv@embedding[["samplBlurred"]],pch="+")
 ```
 The distance is calculated by `max(Smat)-Smat`. 
-+ `add.embedding`: add the embeddiing to the epiConv object.
++ `add.embedding`: add embedding to the epiConv object.
   - `obj`: the epiConv object.
   - `x`: the embedding matrix.
   - `name`: the list name used to store the embedding.
@@ -131,7 +131,7 @@ write.table(temp,file="pbmc5k/pbcm5k_ident.tsv",row.names=F,col.names=F,quote=F,
 saveRDS(res_epiConv,file="pbmc5k/res_epiConv_simp.rds")
 ```
 #### Tips for large datasets
-As R does not support long vectors, error will occur when the dataset is large (e.g. >80,000 cells). The function `epiConv.matrix` and `sim.blur` have the `bin` parameter with default value of 10,000. When the dataset contains more than 10,000 cells, the function will split the matrix into several parts, each containing 10,000 cells. Generally there is no need to change `bin`, but if some memory errors occured, you can tried small values such as 5,000 (e.g. `epiConv.matrix(mat=mat,inf_replace=infv,bin=5000)`). Based on our tests, epiConv requires 520GB memory for dataset with 81,173 cells and 436,206 peaks.
+As R does not support long vectors, error will occur when the dataset is large (e.g. >80,000 cells). The function `epiConv.matrix` and `sim.blur` have the `bin` parameter with default value of 10,000. When the dataset contains more than 10,000 cells, the function will split the matrix into several parts, each containing 10,000 cells. Generally there is no need to change `bin`, but if some memory error occurs, you can try small values such as 5,000 (e.g. `epiConv.matrix(mat=mat,inf_replace=infv,bin=5000)`). Based on our tests, epiConv requires 520GB memory for dataset with 81,173 cells and 436,206 peaks.
 
 ### epiConv-full
 In order to accelerate the running speed, epiConv-full runs in bash shell but some common steps shared by epiConv-simp is performed in R. Its input is a compressed bed file named `<prefix>_frag.bed.gz` (can be read by `zcat`; e.g `pbmc5k/pbmc5k_frag.bed.gz`):<br>
