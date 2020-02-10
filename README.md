@@ -326,7 +326,7 @@ plot(res_epiConv_simp@embedding[["samplBlurred"]],pch="+",col=rainbow(ncluster)[
 legend("bottomright",legend=1:ncluster,col=rainbow(ncluster),cex=2,pch="+")
 ```
 We can see that epiConv-full has higher resolution than epiConv-simp but the results are similar. For small datasets, epiConv-full provides better results. But for large datasets, epiConv-simp is much faster. For large datasets, we can use epiConv-simp to get crude clustering and apply epiConv-full to clusters of interests. In the following analyzes, we use the similarity matrix from epiConv-full.<br>
-Unlike most algorithms of differential analysis for scRNA-seq or scATAC-seq, our algorithm does not requires single cells to be clustered into several groups. For each single cell, our algorithm selects peaks that tend to be accessible in its neighbor cells. The algorithm gives each peak in each single cell a score showing the enrichment of accessbile cells within the neighbors (z-scores). In order to perform the analysis, we first need some preparation: 
+Unlike most algorithms of differential analysis for scRNA-seq or scATAC-seq, our algorithm does not requires single cells to be clustered into several groups. For each single cell, our algorithm finds peaks that tend to be accessible in its neighbor cells. The algorithm gives each peak in each single cell a score showing the enrichment of accessbile cells within its neighbors (z-scores). In order to perform the analysis, we first need some preparation: 
 ```
 umap_settings<-umap::umap.defaults
 umap_settings$input<-"dist"
@@ -352,7 +352,7 @@ zsingle<-zscore.single(mat=res_epiConv_full@mat[["peak"]][freq>0.01,],
   - `qt`: the percent of cells as neighbors. For example, qt = 0.05 means the top 5% cells with highest similarities is the cell's neighbors.
   - `lib_size`: the library size of single cells. For simplicity, we use the total number of insertions in peaks. But library size calculated through other ways (e.g  the total number of insertions in promoters) is also acceptable.
   
-When the cluster information is available, we can average the z-scores of single cells in each cluster and sort them in decreasing order to get some markers for each cluster. Here, we select 5 markers for each cluster and compare z-scores with aggregated bulk profiles:
+When the cluster information is available, we can average the z-scores of single cells in each cluster to get some markers. Here, we select the top 5 markers for each cluster and compare z-scores with aggregated bulk profiles:
 ```
 zmean<-sapply(1:ncluster,function(x) rowMeans(zsingle[,clust==x]))
 marker<-as.vector(apply(zmean,2,function(x) names(x)[order(x,decreasing=T)[1:5]]))
@@ -387,8 +387,8 @@ heatmap.plus::heatmap.plus(zsingle[cmarker,odr],
                            Rowv=NA,
                            Colv=NA)
 ```
-One novel feature of our algorithm is that we can select DE peaks even without clustering. If the number of cells showing high z-scores exceeds the threshold for one peak, we consider it to be differentially accessible. From the heatmap above, we can easily find that these markers will be selected without clustering given that there are always a fraction of cells with high z-scores in these peaks.<br>
-Next, we will show another example. We note that CD8 T cells and NK cells are close to each other and share many common marker peaks. Here we want to find the differentially accessible peaks within CD8 T cells and NK cells:
+One novel feature of our algorithm is that we can select DE peaks even without clustering. If the number of cells showing high z-scores (e.g. > 2) exceeds the threshold (e.g. > 10%) for one peak, we consider it to be differentially accessible. From the heatmap above, we can easily find that these markers will be selected without clustering given that there are always a fraction of cells with high z-scores in these peaks.<br>
+Next, we will show another example. We note that CD8 T cells and NK cells are close to each other and share many common markers. Here we want to find the differentially accessible peaks within CD8 T cells and NK cells:
 ```
 retain<-which(clust%in%c(4,8))  ##depending on the result of densityClust above 
 freq<-freq.estimate(res_epiConv_full@mat[["peak"]][,retain])
