@@ -305,7 +305,7 @@ plot(res_epiConv@embedding[["samplBlurred"]],pch="+")
 saveRDS(res_epiConv,file="pbmc5k/res_epiConv_full.rds")
 ```
 
-### detect differentially accessible peaks
+### Detect differentially accessible peaks
 
 Before differential analysis, we cluster the cells using densityClust package and compare the results from epiConv-full and epiConv-simp:
 ```
