@@ -12,9 +12,9 @@ EpiConv is developed under the following environments:
     1. Matrix package
     2. bigmemory package
     3. biganalytics package
-    4. umap or uwot packages
+    4. umap package
 
-All source codes of epiConv can be found in the folder `source/`. Here assume we put them into the folder `~/epiConv/`. Two source files need to be compiled.<br>
+In order to run the scripts below, R packages `densityClust` and `heatmap.plus` are also needed. All source codes of epiConv can be found in the folder `source/`. Here assume we put them into the folder `~/epiConv/`. Two source files need to be compiled.<br>
 ```
 g++ ~/epiConv/matrix_sum.c -o ~/epiConv/matrix_sum
 g++ ~/epiConv/matrix_sampl.c -o ~/epiConv/matrix_sampl
@@ -350,9 +350,9 @@ zsingle<-zscore.single(mat=res_epiConv_full@mat[["peak"]][freq>0.01,],
   - `mat`: the accessibility matrix.
   - `Smat`: the similarity matrix.
   - `qt`: the percent of cells as neighbors. For example, qt = 0.05 means the top 5% cells with highest similarities is the cell's neighbors.
-  - `lib_size`: the library size of single cells. For simplicity, we use the total number of insertions in peaks. But library size calculated through other ways (e.g  the total number of insertions in promoters) is also acceptable.
+  - `lib_size`: the library size of single cells. For simplicity, we use the library size inferred in previous steps. Library size infered through other ways  is also acceptable but may change the results.
   
-When the cluster information is available, we can average the z-scores of single cells in each cluster to get some markers. Here, we select the top 5 markers for each cluster and compare z-scores with aggregated bulk profiles:
+When the cluster information is available, we can average the z-scores of single cells in one cluster to get its markers. Here, we select the top 5 peaks with highest z-scores for each cluster and compare them with aggregated bulk profiles:
 ```
 zmean<-sapply(1:ncluster,function(x) rowMeans(zsingle[,clust==x]))
 marker<-as.vector(apply(zmean,2,function(x) names(x)[order(x,decreasing=T)[1:5]]))
@@ -373,7 +373,7 @@ heatmap.plus::heatmap.plus(bulk[marker,],
                            Rowv=NA,
                            Colv=NA)
 ```
-The ATAC-seq does not match the expression data very well. But we can still examine the promoters of some known marker genes to know the identies of cells:
+The ATAC-seq does not match the expression data very well. But we can still examine the promoters of some known marker genes to learn the identies of cells:
 ```
 cmarker<-c("chr17:38721364-38722083", ##CCR7
 	  "chr11:118175174-118175840", ##CD3E
@@ -387,7 +387,7 @@ heatmap.plus::heatmap.plus(zsingle[cmarker,odr],
                            Rowv=NA,
                            Colv=NA)
 ```
-One novel feature of our algorithm is that we can select DE peaks even without clustering. If the number of cells showing high z-scores (e.g. > 2) exceeds the threshold (e.g. > 10%) for one peak, we consider it to be differentially accessible. From the heatmap above, we can easily find that these markers will be selected without clustering given that there are always a fraction of cells with high z-scores in these peaks.<br>
+One novel feature of our algorithm is that we can select DE peaks without clustering. If the number of cells showing high z-scores (e.g. > 2) exceeds the threshold (e.g. > 10%) for one peak, we consider it to be differentially accessible in some cells. From the heatmap above, we can easily find that these markers will be selected by the criteria given that there are always a fraction of cells with high z-scores in these peaks.<br>
 Next, we will show another example. We note that CD8 T cells and NK cells are close to each other and share many common markers. Here we want to find the differentially accessible peaks within CD8 T cells and NK cells:
 ```
 retain<-which(clust%in%c(4,8))  ##depending on the result of densityClust above 
@@ -415,7 +415,7 @@ heatmap.plus::heatmap.plus(zsingle[marker[peak_odr],odr],
                            Rowv=NA,
                            Colv=NA)
 ```
-In the script above, we perform differential analysis on cluster 4 and 8 (CD8 T cells and NK cells). Gernerally it is better to exclude  irrelevant cells as we cannot avoid selecting DE peaks from them. As the cell number is low (624 cells), we increase `qt` parameter in `zscore.single` to 0.1 in order to reduce the noise. Peaks with z-scores > 2 in at least 10% cells are selected as DE peaks and are embedded to 1D space in order to cluster peaks with similar patterns together. The majority of peaks are differentially accessible between CD8 T cells and NK cells but the chromtin states of some peaks are not uniform even within clusters.
+In the script above, we perform differential analysis on cluster 4 and 8 (CD8 T cells and NK cells). Gernerally it is better to exclude  irrelevant cells as we cannot avoid selecting DE peaks from them when cluster information is not available. As the cell number is low (624 cells), we increase `qt` parameter in `zscore.single` to 0.1 to reduce the noise. Peaks with z-scores > 2 in at least 10% cells are selected as DE peaks and are embedded to 1D space in order to cluster peaks with similar patterns together. The majority of peaks are differentially accessible between CD8 T cells and NK cells but the chromtin states of some peaks are not uniform even within clusters.
 
 
 
