@@ -34,16 +34,8 @@ rownames(mat)<-paste(peak$seqnames,":",
                      peak$start,"-",
                      peak$end,sep="")
 colnames(mat)<-barcode
-lib.estimate<-function(mat){
-  mat@x[mat@x>1]<-1
-  return(Matrix::colSums(mat))}
 lib_size<-lib.estimate(mat)
-freq.estimate<-function(mat){
-  mat@x[mat@x>1]<-1
-  return(Matrix::rowSums(mat)/ncol(mat))
-}
 freq<-freq.estimate(mat[,lib_size>1000])
-
 res_epiConv<-create.epiconv(meta.features=data.frame(barcode=barcode[lib_size>1000],
                                                      lib_size=lib_size[lib_size>1000]))
 res_epiConv<-add.mat(obj=res_epiConv,x=mat[freq!=0,lib_size>1000],name="peak")
@@ -309,7 +301,7 @@ saveRDS(res_epiConv,file="pbmc5k/res_epiConv_full.rds")
 All figures plotted below can be found in `Differential_analysis.pdf`.<br>
 Before differential analysis, we cluster the cells using densityClust package and compare the results from epiConv-full and epiConv-simp:
 ```
-source("~/script/epiConv_functions.R")
+source("~/epiConv/epiConv_functions.R")
 res_epiConv_simp<-readRDS(file="pbmc5k/res_epiConv_simp.rds")
 res_epiConv_full<-readRDS(file="pbmc5k/res_epiConv_full.rds")
 res_epiConv_full<-add.mat(obj=res_epiConv_full,x=res_epiConv_simp@mat[["peak"]],name="peak")
