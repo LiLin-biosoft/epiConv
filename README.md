@@ -390,7 +390,7 @@ heatmap.plus::heatmap.plus(zsingle[cmarker,odr],
 One novel feature of our algorithm is that we can select DE peaks even without clustering. If the number of cells showing high z-scores exceeds the threshold for one peak, we consider it to be differentially accessible. From the heatmap above, we can easily find that these markers will be selected without clustering given that there are always a fraction of cells with high z-scores in these peaks.<br>
 Next, we will show another example. We note that CD8 T cells and NK cells are close to each other and share many common marker peaks. Here we want to find the differentially accessible peaks within CD8 T cells and NK cells:
 ```
-retain<-which(clust%in%c(4,8))
+retain<-which(clust%in%c(4,8))  ##depending on the result of densityClust above 
 freq<-freq.estimate(res_epiConv_full@mat[["peak"]][,retain])
 zsingle<-zscore.single(mat=res_epiConv_full@mat[["peak"]][freq>0.01,retain],
                        Smat=res_epiConv_full[["samplBlurred"]][retain,retain],
