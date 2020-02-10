@@ -1,7 +1,7 @@
 suppressMessages(library(Matrix))
+suppressMessages(library(SingleCellExperiment))
 suppressMessages(library(bigmemory))
 suppressMessages(library(biganalytics))
-
 {
   setClass("epiConv",
            slots=list(mat="list",similarity="list",embedding="list",
@@ -70,6 +70,9 @@ suppressMessages(library(biganalytics))
   }
     return(p)
   }
+
+}
+
 tfidf.norm<-function(mat,lib_size){
   mat@x[mat@x>1]<-1
   freq<-Matrix::rowSums(mat)/ncol(mat)
@@ -87,6 +90,7 @@ inf.estimate<-function(mat,sample_size=0.125,nsim=30){
   })
   return(min(conv))
 }
+
 epiConv.matrix<-function(mat,bin=10000,inf_replace=-10){
   ncell<-ncol(mat)
   if(ncell<=bin){
@@ -155,5 +159,65 @@ sim.blur<-function(Smat,weight_scale=1,neighbor_frac=0.25,knn=20,bin=10000){
   }
 }
 
+lib.estimate<-function(mat){
+  mat@x[mat@x>1]<-1
+  return(Matrix::colSums(mat))}
+freq.estimate<-function(mat){
+  mat@x[mat@x>1]<-1
+  return(Matrix::rowSums(mat)/ncol(mat))
 }
 
+sd.cal<-function(total,positive,sample){
+  var<-sample*(positive/total)*((total-positive)/total)*(total-sample)/(total-1)
+  return(sqrt(var))
+}
+z.cal<-function(x1,x2){
+  output<-(sum(x1*x2)-sum(x1)*sum(x2)/length(x1))/sd.cal(total=length(x1),positive=sum(x1),sample=sum(x2))
+  return(output)
+}
+p.cal<-function(x1,x2){
+  output<-phyper(q=sum(x1*x2),m=sum(x1),n=length(x1)-sum(x1),k=sum(x2),lower.tail=F)
+  return(output)
+}
+
+zscore.bulk<-function(mat,clust){
+  mat@x[mat@x>0]<-1
+  clust<-factor(clust)
+  output<-apply(mat,1,function(x,clust){
+    zscore<-sapply(levels(clust),function(y,x,clust){
+      z.cal(x,as.numeric(clust==y))
+    },x=x,clust=clust)
+    pvalue<-sapply(levels(clust),function(y,x,clust){
+      p.cal(x,as.numeric(clust==y))
+    },x=x,clust=clust)
+    return(as.vector(rbind(zscore,pvalue)))
+  },clust=clust)
+  output<-t(output)
+  rownames(output)<-rownames(mat)
+  colnames(output)<-paste0(sapply(levels(clust),rep,times=2),"_",c("z","p"))
+  return(output)
+}
+
+zscore.single<-function(mat,Smat,qt=0.05,lib_size=NULL){
+  diag(Smat)<-apply(Smat,2,max)
+  Smat<-apply(Smat,2,function(x){
+    output<-rep(0,length(x))
+    output[x>quantile(x,1-qt)]<-1
+    return(output)
+  })
+  mat@x[mat@x>0]<-1
+  freq<-Matrix::rowSums(mat)
+  zmat<-mat%*%Smat
+  colnames(zmat)<-colnames(mat)
+  if(is.null(lib_size)){
+    n_neighbour<-sum(Smat[,1])
+    peak_sd<-sd.cal(total=ncol(mat),positive=n_neighbour,sample=freq)
+    zmat<-(zmat-n_neighbour/ncol(mat)*freq)/peak_sd
+    return(as.matrix(zmat))
+  }  
+  neighbour_size<-Matrix::colSums(Smat*lib_size)/mean(lib_size)
+  mean_mat<-sapply(neighbour_size,function(x) x/ncol(mat)*freq)
+  sd_mat<-sapply(neighbour_size,function(y) sd.cal(total=ncol(mat),positive=y,sample=freq))
+  zmat<-(zmat-mean_mat)/sd_mat
+  return(as.matrix(zmat))
+}
