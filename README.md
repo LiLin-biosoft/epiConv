@@ -311,10 +311,10 @@ We cluster the cells using densityClust package and compare the results from epi
 ```
 ```
 We can see that epiConv-full has higher resolution than epiConv-simp but the results are similar. For small datasets, epiConv-full provides better results. But for large datasets, epiConv-simp is much faster. For large datasets, we can use epiConv-simp to get crude clustering and apply epiConv-full to clusters of interests. In the following analyzes, we use the similarity matrix from epiConv-full.<br>
-Unlike most algorithms of differential analysis for scRNA-seq or scATAC-seq, our algorithm does not requires single cells to be clustered into several groups. For each single cell, our algorithm trys to find some peaks that tend to be accessible in its neighbor cells. The algorithm gives each peak in each single cell a score showing the enrichment of accessbile cells within the neighbors (z-scores). In order to perform the analysis, we first need some preparation: 
+Unlike most algorithms of differential analysis for scRNA-seq or scATAC-seq, our algorithm does not requires single cells to be clustered into several groups. For each single cell, our algorithm selects peaks that tend to be accessible in its neighbor cells. The algorithm gives each peak in each single cell a score showing the enrichment of accessbile cells within the neighbors (z-scores). In order to perform the analysis, we first need some preparation: 
 ```
 ```
-In the script above, we aggregate the binary matrix by clusters. It can be validation of our algorithm. We also embed single cells into one-dimensional space in order to simutaneously show the accessibility of peaks in heatmap. Next, we calculate the z-scores:
+In the script above, we aggregate the binary matrix by clusters and embed single cells into one-dimensional space. Next, we calculate the z-scores:
 ```
 ```
 + `zscore.single`: the function used to calculate the z-scores.
@@ -323,12 +323,19 @@ In the script above, we aggregate the binary matrix by clusters. It can be valid
   - `qt`: the percent of cells as neighbors. For example, qt = 0.05 means the top 5% cells with highest similarities is the cell's neighbors.
   - `lib_size`: the library size of single cells. For simplicity, we use the total number of insertions in peaks. But library size calculated through other ways (e.g  the total number of insertions in promoters) is also acceptable.
   
-When the cluster information is available, we can average the z-scores of single cells in each cluster and sort them in decreasing order to get some marker peaks for each cluster. Here, we select 5 marker peaks for each cluster and compare z-scores with aggregated bulk profiles:
+When the cluster information is available, we can average the z-scores of single cells in each cluster and sort them in decreasing order to get some markers for each cluster. Here, we select 5 markers for each cluster and compare z-scores with aggregated bulk profiles:
 ```
 ```
-One novel feature of our algorithm is that we can select differentially accessible peaks even without cluster information. If the number of cells showing high z-scores exceeds the threshold for one peak, we consider it to be differentially accessible. From the heatmap above, we can easily find that the these marker peaks will be selected even without clustering given that there are always a fraction of cells with high z-scores in these peaks. Next, we will show another example of detecting differentially accessible peaks from highly similar cells. We note that CD8 T cells and NK cells are close to each other and share many common marker peaks.
+One novel feature of our algorithm is that we can select DE peaks even without clustering. If the number of cells showing high z-scores exceeds the threshold for one peak, we consider it to be differentially accessible. From the heatmap above, we can easily find that these markers will be selected without clustering given that there are always a fraction of cells with high z-scores in these peaks.<br>
+The ATAC-seq does not match the expression data very well. But we can still examine the promoters of some known marker genes to know the identies of cells:
 ```
 ```
-In the script above, we perform differential analysis on cluster 4 and 8 (CD8 T cells and NK cells). As the cell number is low (624 cells), we increase `qt` parameter in `zscore.single` to 0.2 in order to reduce the noise. We can find 
+Next, we will show another example of detecting differentially accessible peaks from highly similar cells. We note that CD8 T cells and NK cells are close to each other and share many common marker peaks.
+```
+```
+In the script above, we perform differential analysis on cluster 4 and 8 (CD8 T cells and NK cells). As the cell number is low (624 cells), we increase `qt` parameter in `zscore.single` to 0.1 in order to reduce the noise. Peaks with z-scores > 2 in at least 10% cells are selected as DE peaks and embedded to 1D space in order to cluster peaks with similar accessibility patterns together. Gernerally it is better to exclude other irrelevant cells as we cannot avoid to select DE peaks from these cells.<br>
+
+
+
 
 
