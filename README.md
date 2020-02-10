@@ -306,7 +306,7 @@ saveRDS(res_epiConv,file="pbmc5k/res_epiConv_full.rds")
 ```
 
 ### Detect differentially accessible peaks
-
+All figures plotted below can be found in `Differential_analysis.pdf`.<br>
 Before differential analysis, we cluster the cells using densityClust package and compare the results from epiConv-full and epiConv-simp:
 ```
 source("~/script/epiConv_functions.R")
@@ -326,7 +326,7 @@ plot(res_epiConv_simp@embedding[["samplBlurred"]],pch="+",col=rainbow(ncluster)[
 legend("bottomright",legend=1:ncluster,col=rainbow(ncluster),cex=2,pch="+")
 ```
 We can see that epiConv-full has higher resolution than epiConv-simp but the results are similar. For small datasets, epiConv-full provides better results. But for large datasets, epiConv-simp is much faster. For large datasets, we can use epiConv-simp to get crude clustering and apply epiConv-full to clusters of interests. In the following analyzes, we use the similarity matrix from epiConv-full.<br>
-Unlike most algorithms of differential analysis for scRNA-seq or scATAC-seq, our algorithm does not requires single cells to be clustered into several groups. For each single cell, our algorithm finds peaks that tend to be accessible in its neighbor cells. The algorithm gives each peak in each single cell a score showing the enrichment of accessbile cells within its neighbors (z-scores). In order to perform the analysis, we first need some preparation: 
+Unlike most algorithms of differential analysis for scRNA-seq or scATAC-seq, our algorithm does not requires single cells to be clustered into several groups. For each single cell, our algorithm finds peaks that tend to be accessible in its neighbors. The algorithm gives each peak in each single cell a score showing the enrichment of accessbile cells within its neighbors (z-scores). In order to perform the analysis, we first need some preparations: 
 ```
 umap_settings<-umap::umap.defaults
 umap_settings$input<-"dist"
@@ -338,7 +338,7 @@ res_epiConv_full<-add.embedding(obj=res_epiConv_full,x=umap_res,name="pbmc5k1d")
 bulk<-sapply(1:ncluster,function(x) Matrix::rowSums(res_epiConv_full@mat[["peak"]][,clust==x]))
 bulk<-t(t(bulk)/colSums(bulk)*median(colSums(bulk)))
 ```
-In the script above, we aggregate the binary matrix by clusters and embed single cells into one-dimensional space. Next, we calculate the z-scores:
+In the script above, we aggregate the binary matrix by clusters and embed single cells into one-dimensional(1D) space. Next, we calculate the z-scores:
 ```
 freq<-freq.estimate(res_epiConv_full@mat[["peak"]])
 zsingle<-zscore.single(mat=res_epiConv_full@mat[["peak"]][freq>0.01,],
@@ -346,8 +346,8 @@ zsingle<-zscore.single(mat=res_epiConv_full@mat[["peak"]][freq>0.01,],
                      qt=0.05,
                      lib_size=res_epiConv_full$lib_size)
 ```
-+ `zscore.single`: the function used to calculate the z-scores.
-  - `mat`: the accessibility matrix.
++ `zscore.single`: calculate the z-scores.
+  - `mat`: the accessibility matrix. Here we only examine the peaks with frequency > 0.01.
   - `Smat`: the similarity matrix.
   - `qt`: the percent of cells as neighbors. For example, qt = 0.05 means the top 5% cells with highest similarities is the cell's neighbors.
   - `lib_size`: the library size of single cells. For simplicity, we use the library size inferred in previous steps. Library size infered through other ways  is also acceptable but may change the results.
