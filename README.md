@@ -361,7 +361,7 @@ umap_res<-umap::umap(as.matrix(max(Smat)-Smat),config=umap_settings)$layout
 res_epiConv<-add.embedding(obj=res_epiConv,x=umap_res,name="pbmc5k1d")
 odr<-order(res_epiConv@embedding[["pbmc5k1d"]])
 
-heatmap.plus::heatmap.plus(zsingle[peak_odr,odr],
+heatmap.plus::heatmap.plus(zsingle[marker[peak_odr],odr],
                            col=colorRampPalette(c("lightblue","black","yellow"))(32),
                            labCol=F,
                            labRow=F,
