@@ -314,6 +314,8 @@ Before differential analysis, we cluster the cells using densityClust package an
 ```
 source("~/epiConv/epiConv_functions.R")
 res_epiConv<-readRDS(file="pbmc5k/res_epiConv.rds")
+colsfun<-colorRampPalette(c("red","chocolate","darkorange","gold","darkgreen","green3","darkolivegreen1",
+            "blue","lightblue","cyan","lightpink","magenta","purple"))
 
 library(densityClust)
 ncluster<-10
@@ -321,12 +323,12 @@ dclust_obj<-densityClust(res_epiConv@embedding[["sampl_full_denoise"]],gaussian=
 rho_cut<-quantile(dclust_obj$rho,0.5)
 delta_cut<-sort(dclust_obj$delta[dclust_obj$rho>=rho_cut],decreasing=T)[ncluster+1]
 clust<-findClusters(dclust_obj,rho=rho_cut,delta=delta_cut)$clusters
-plot(res_epiConv@embedding[["sampl_full_denoise"]],pch="+",col=rainbow(ncluster)[clust])
-legend("bottomright",legend=1:ncluster,col=rainbow(ncluster),cex=2,pch="+")
-plot(res_epiConv@embedding[["sampl_simp_denoise"]],pch="+",col=rainbow(ncluster)[clust])
-legend("bottomright",legend=1:ncluster,col=rainbow(ncluster),cex=2,pch="+")
-plot(res_epiConv@embedding[["sampl_full_decomp"]],pch="+",col=rainbow(ncluster)[clust])
-legend("bottomright",legend=1:ncluster,col=rainbow(ncluster),cex=2,pch="+")
+plot(res_epiConv@embedding[["sampl_full_denoise"]],pch="+",col=colsfun(ncluster)[clust])
+legend("bottomright",legend=1:ncluster,col=colsfun(ncluster),cex=2,pch="+")
+plot(res_epiConv@embedding[["sampl_simp_denoise"]],pch="+",col=colsfun(ncluster)[clust])
+legend("bottomright",legend=1:ncluster,col=colsfun(ncluster),cex=2,pch="+")
+plot(res_epiConv@embedding[["sampl_full_decomp"]],pch="+",col=colsfun(ncluster)[clust])
+legend("bottomright",legend=1:ncluster,col=colsfun(ncluster),cex=2,pch="+")
 ```
 In the case of PBMCs, results by different methods are similar. In the following analyzes, we use the similarity matrix from epiConv-full by knn-based method for differential analysis.<br>
 ```
@@ -365,7 +367,7 @@ heatmap.plus::heatmap.plus(zsingle[marker[peak_odr],odr],
                            col=colorRampPalette(c("lightblue","black","yellow"))(32),
                            labCol=F,
                            labRow=F,
-                           ColSideColors=cbind(rainbow(ncluster)[clust[odr]],"white"),
+                           ColSideColors=cbind(colsfun(ncluster)[clust[odr]],"white"),
                            Rowv=NA,
                            Colv=NA)
 ```
@@ -391,7 +393,7 @@ heatmap.plus::heatmap.plus(zsingle2[marker2[peak_odr],odr],
                            col=colorRampPalette(c("lightblue","black","yellow"))(32),
                            labCol=F,
                            labRow=F,
-                           ColSideColors=cbind(rainbow(ncluster)[clust[retain][odr]],"white"),
+                           ColSideColors=cbind(colsfun(ncluster)[clust[retain][odr]],"white"),
                            Rowv=NA,
                            Colv=NA)
 ```
