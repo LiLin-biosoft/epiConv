@@ -1,9 +1,8 @@
 suppressMessages(library(Matrix))
-suppressMessages(library(SingleCellExperiment))
 suppressMessages(library(bigmemory))
 suppressMessages(library(biganalytics))
 suppressMessages(library(PRIMME))
-suppressMessages(library(ggplot2))
+
 {
   setClass("epiConv",
            slots=list(mat="list",similarity="list",embedding="list",
