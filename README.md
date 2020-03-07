@@ -376,7 +376,7 @@ Cells from cluster 3 and 9 (NK and effector CD8+ T cells) share many common mark
 retain<-which(clust%in%c(3,9))
 freq<-freq.estimate(res_epiConv@mat[["peak"]][,retain])
 zsingle2<-zscore.single(mat=res_epiConv@mat[["peak"]][freq>0.01,retain],
-                       Smat=res_epiConv[["samplBlurred"]][retain,retain],
+                       Smat=res_epiConv[["sampl_full_denoise"]][retain,retain],
                        qt=0.1,
                        lib_size=res_epiConv$lib_size_full[retain])
 marker2<-rownames(zsingle2)[apply(zsingle2,1,function(x) sum(x>2)/length(x))>0.1]
