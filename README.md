@@ -13,6 +13,7 @@ EpiConv is developed under the following environments:
     2. bigmemory package
     3. biganalytics package
     4. umap package
+    5. PRIMME package
 
 In order to run the scripts below, R packages `densityClust` and `heatmap.plus` are also needed. All source codes of epiConv can be found in the folder `source/`. Here assume we put them into the folder `~/epiConv/`. Two source files need to be compiled.<br>
 ```
@@ -56,7 +57,7 @@ infv<-inf.estimate(mat[,sample(1:ncol(mat),size=500)],
                    sample_size=0.125,nsim=30)
 ```
 + `tfidf.norm`: perform the TF-IDF transformation.
-  - `mat`: the matrix. It must be a Matrix object (created by readMM() or Matrix()).
+  - `mat`: the matrix (row/peak and column/cell). It must be a Matrix object (created by readMM() or Matrix()).
   - `lib_size`: library size used in normalization. In the scripts above, we used the total number of accessible regions in each cell as library size.
 + `inf.estimate`: learn a small value to replace infinite value in the analysis below.
   - `mat`: the matrix after TF-IDF transformation. We randomly sample a small fraction of cells from the full matrix to save the running time.
@@ -75,7 +76,7 @@ for(i in sample_matrix){
   Smat<-Smat+epiConv.matrix(mat=mat[i,],inf_replace=infv)
 }
 Smat<-Smat/nsim
-res_epiConv<-add.similarity(obj=res_epiConv,x=Smat,name="sampl")
+res_epiConv<-add.similarity(obj=res_epiConv,x=Smat,name="sampl_simp")
 ```
 In the script above, `sample_matrix` contains the peaks in each replicate. `Smat` contains the calculated similarities between single cells.
 + `epiConv.matrix`: calculate the similarites.
@@ -85,21 +86,19 @@ In the script above, `sample_matrix` contains the peaks in each replicate. `Smat
   - `obj`: the epiConv object.
   - `x`: the similarity matrix.
   - `name`: the list name used to store the similarity matrix.
-  - The similarity matrix can be obtained from the object using the form `res_epiConv[["sampl"]]`.
+  - The similarity matrix can be obtained from the object using the form `res_epiConv[["sampl_simp"]]`.
 
-Next we blur the similarities between single cells to denoise the data:
+Next we denoise the similarities between single cells:
 ```
-Smat<-sim.blur(Smat=res_epiConv[["sampl"]],
-               weight_scale=log10(res_epiConv$lib_size),
-               neighbor_frac=0.25,
-               knn=20)
-res_epiConv<-add.similarity(res_epiConv,x=Smat,name="samplBlurred")
+Smat<-batch.blur(Smat=res_epiConv[["sampl_simp"]],
+               batch=NULL,
+               knn=50)
+res_epiConv<-add.similarity(res_epiConv,x=Smat,name="sampl_simp_denoise")
 ```
-+ `sim.blur`: the function used to blur the similarity matrix.
++ `batch.blur`: the function used to denoise the similarity matrix.
   - `Smat`: the similarity matrix for denoising.
-  - `weight_scale`: the weight for each cell. We think cells with high library size are more reliable and use log10 library size as weights.
-  - `neighbor_frac`: the fraction of information from the neighbors of each cell. It should be within 0~1. Higher value means strong denoising while lower value means weak denoising. The default value 0.25 is suitable for most datasets. If you find the downstream embedding result is poor, you can try higher values (e.g. 0.5).
-  - `knn`: the number of neighbors for each cell. There is no need to change it unless your data set is very small (e.g. <200 cells).
+  - `batch`: the function does not only denoise the data but also can remove batch effect. If you want to remove the batch effects, the batch information should be provided through this parameter (a numeric or character vector). If the data only contains cells from single batch, it should be set to NULL.
+  - `knn`: the number of neighbors for each cell.
 
 Finally we use umap to learn the low-dimensional embedding of the data:
 ```
@@ -107,8 +106,7 @@ umap_settings<-umap::umap.defaults
 umap_settings$input<-"dist"
 umap_settings$n_components<-2
 umap_res<-umap::umap(max(Smat)-Smat,config=umap_settings)$layout
-res_epiConv<-add.embedding(obj=res_epiConv,x=umap_res,name="samplBlurred")
-plot(res_epiConv@embedding[["samplBlurred"]],pch="+")
+res_epiConv<-add.embedding(obj=res_epiConv,x=umap_res,name="sampl_simp_denoise")
 ```
 The distance is calculated by `max(Smat)-Smat`. 
 + `add.embedding`: add embedding to the epiConv object.
@@ -120,10 +118,11 @@ To prepare the input for epiConv-full, we save the list of high-quality barcodes
 ```
 temp<-data.frame(res_epiConv@meta.features$barcode,1)
 write.table(temp,file="pbmc5k/pbcm5k_ident.tsv",row.names=F,col.names=F,quote=F,sep="\t")
-saveRDS(res_epiConv,file="pbmc5k/res_epiConv_simp.rds")
+saveRDS(res_epiConv,file="pbmc5k/res_epiConv.rds")
 ```
+
 #### Tips for large datasets
-As R does not support long vectors, error will occur when the dataset is large (e.g. >80,000 cells). The function `epiConv.matrix` and `sim.blur` have the `bin` parameter with default value of 10,000. When the dataset contains more than 10,000 cells, the function will split the matrix into several parts, each containing 10,000 cells. Generally there is no need to change `bin`, but if some memory error occurs, you can try small values such as 5,000 (e.g. `epiConv.matrix(mat=mat,inf_replace=infv,bin=5000)`). Based on our tests, epiConv requires 520GB memory for dataset with 81,173 cells and 436,206 peaks.
+Sometimes error such as `problem too large` will occur when the dataset is large (e.g. >80,000 cells). In order to avoid such problem, Several functions of our algorithm have the `bin` parameter with default value of 10,000. When the dataset contains more than 10,000 cells, the function will split the matrix into several parts, each containing 10,000 cells. Generally there is no need to change `bin`, but if error still occurs, you can try small values (e.g. `epiConv.matrix(mat=mat,inf_replace=infv,bin=5000)`). Large datasets also require more memory. Based on our test, epiConv requires 520GB memory for dataset with 81,173 cells and 436,206 peaks.
 
 ### epiConv-full
 In order to accelerate the running speed, epiConv-full runs in bash shell but some common steps are performed in R. Its input is a gzip-compressed bed file named `<prefix>_frag.bed.gz` (e.g `pbmc5k/pbmc5k_frag.bed.gz`):
@@ -267,130 +266,86 @@ The 3rd column is the library size for single cells. After that, all steps in ba
 First we still need to read the scource file and data:
 ```
 source("~/epiConv/epiConv_functions.R")
+res_epiConv<-readRDS(file="pbmc5k/res_epiConv.rds")
 cell_info<-read.table(file="pbmc5k/pbmc5k.info")
-mfeature<-data.frame(barcode=as.character(cell_info[,1]),
-                     lib_size=cell_info[,3],
-                     ident=factor(cell_info[,2]))
-res_epiConv<-create.epiconv(meta.features=mfeature)
+res_epiConv@meta.features<-cbind(res_epiConv@meta.features,lib_size_full=cell_info[,3])
 Smat<-read.csv(file="pbmc5k/pbmc5k_smat.txt",col.names=res_epiConv$barcode,
                header=F,fill=T,blank.lines.skip=F)
 Smat<-as.matrix(Smat)
 Smat[is.na(Smat)]<-0
 Smat<-Smat+t(Smat)
-Smat<-t(t(Smat)-log10(res_epiConv$lib_size))-log10(res_epiConv$lib_size)
-res_epiConv<-add.similarity(res_epiConv,x=Smat,name="sampl")
+Smat<-t(t(Smat)-log10(res_epiConv$lib_size_full))-log10(res_epiConv$lib_size_full)
+res_epiConv<-add.similarity(res_epiConv,x=Smat,name="sampl_full")
 ```
 In the script above, we read the similarity matrix and normalize it by library size of single cells (each element needs to be normalized by the library size of corresponding row and column). Then we blur the similarity matrix and perform low-dimensional embedding:
 ```
-Smat<-sim.blur(Smat=res_epiConv[["sampl"]],
-               weight_scale=log10(res_epiConv$lib_size),
-               neighbor_frac=0.25,
-               knn=20)
-res_epiConv<-add.similarity(res_epiConv,x=Smat,name="samplBlurred")
+Smat<-batch.blur(Smat=res_epiConv[["sampl_full"]],
+               batch=NULL,
+               knn=50)
+res_epiConv<-add.similarity(res_epiConv,x=Smat,name="sampl_full_denoise")
 umap_settings<-umap::umap.defaults
 umap_settings$input<-"dist"
 umap_settings$n_components<-2
 umap_res<-umap::umap(max(Smat)-Smat,config=umap_settings)$layout
-res_epiConv<-add.embedding(res_epiConv,x=umap_res,name="samplBlurred")
-plot(res_epiConv@embedding[["samplBlurred"]],pch="+")
+res_epiConv<-add.embedding(res_epiConv,x=umap_res,name="sampl_full_denoise")
 
-saveRDS(res_epiConv,file="pbmc5k/res_epiConv_full.rds")
+saveRDS(res_epiConv,file="pbmc5k/res_epiConv.rds")
 ```
+
+### alternative denosing methods
+Here we describe another denoising method based on Eigen value decomposition.
+```
+Smat<-res_epiConv[["sampl_full"]]
+eigs<-dim.reduce(Smat=Smat,neigs=50)
+umap_res<-umap::umap(eigs)$layout
+res_epiConv<-add.embedding(res_epiConv,x=umap_res,name="sampl_full_decomp")
+
+saveRDS(res_epiConv,file="pbmc5k/res_epiConv.rds")
+```
++ `dim.reduce`: calculate latent features from the similarity matrix.
+  - `Smat`: the similarity matrix.
+  - `neigs`: the number of latent features to calculate.
+The results `eigs` is a matrix with latent features(row/cell and column/feature). Features are orthogonal to each other and sorted by their Eigen values in decreasing order. After obtaining latent features, we calculate the Euclidean distance between cells and embed cells into low-dimension space. The result by Eigen value decompsition is similar with other methods that infer latent features (e.g cisTopic). However, it sometimes does not agree with the first denoising method as the data discarded can be noise or useful information. Generally, it is better to compare the results between two denoising methods when analyzing the data.
+
 
 ### Detect differentially accessible peaks
 All figures plotted below can be found in `Differential_analysis.pdf`.<br>
 Before differential analysis, we cluster the cells using densityClust package and compare the results from epiConv-full and epiConv-simp:
 ```
 source("~/epiConv/epiConv_functions.R")
-res_epiConv_simp<-readRDS(file="pbmc5k/res_epiConv_simp.rds")
-res_epiConv_full<-readRDS(file="pbmc5k/res_epiConv_full.rds")
-res_epiConv_full<-add.mat(obj=res_epiConv_full,x=res_epiConv_simp@mat[["peak"]],name="peak")
+res_epiConv<-readRDS(file="pbmc5k/res_epiConv.rds")
 
 library(densityClust)
 ncluster<-8
-dclust_obj<-densityClust(res_epiConv_full@embedding[["samplBlurred"]],gaussian=T)
+dclust_obj<-densityClust(res_epiConv@embedding[["sampl_full_denoise"]],gaussian=T)
 rho_cut<-quantile(dclust_obj$rho,0.5)
 delta_cut<-sort(dclust_obj$delta[dclust_obj$rho>=rho_cut],decreasing=T)[ncluster+1]
 clust<-findClusters(dclust_obj,rho=rho_cut,delta=delta_cut)$clusters
-plot(res_epiConv_full@embedding[["samplBlurred"]],pch="+",col=rainbow(ncluster)[clust])
+plot(res_epiConv@embedding[["sampl_full_denoise"]],pch="+",col=rainbow(ncluster)[clust])
 legend("bottomright",legend=1:ncluster,col=rainbow(ncluster),cex=2,pch="+")
-plot(res_epiConv_simp@embedding[["samplBlurred"]],pch="+",col=rainbow(ncluster)[clust])
+plot(res_epiConv@embedding[["sampl_simp_denoise"]],pch="+",col=rainbow(ncluster)[clust])
+legend("bottomright",legend=1:ncluster,col=rainbow(ncluster),cex=2,pch="+")
+plot(res_epiConv@embedding[["sampl_full_decomp"]],pch="+",col=rainbow(ncluster)[clust])
 legend("bottomright",legend=1:ncluster,col=rainbow(ncluster),cex=2,pch="+")
 ```
-We can see that epiConv-full has higher resolution than epiConv-simp but the results are similar. For small datasets, epiConv-full provides better results. But for large datasets, epiConv-simp is much faster. For large datasets, we can use epiConv-simp to get crude clustering and apply epiConv-full to clusters of interests. In the following analyzes, we use the similarity matrix from epiConv-full.<br>
-Unlike most algorithms of differential analysis for scRNA-seq or scATAC-seq, our algorithm does not requires single cells to be clustered into several groups. For each single cell, our algorithm finds peaks that tend to be accessible in its neighbors. The algorithm gives each peak in each single cell a score showing the enrichment of accessbile cells within its neighbors (z-scores). In order to perform the analysis, we first need some preparations: 
+In the case of PBMCs, results by different methods are similar. In the following analyzes, we use the similarity matrix from epiConv-full by knn-based method for differential analysis.<br>
 ```
-umap_settings<-umap::umap.defaults
-umap_settings$input<-"dist"
-umap_settings$n_components<-1
-Smat<-res_epiConv_full[["samplBlurred"]]
-umap_res<-umap::umap(as.matrix(max(Smat)-Smat),config=umap_settings)$layout
-res_epiConv_full<-add.embedding(obj=res_epiConv_full,x=umap_res,name="pbmc5k1d")
-
-bulk<-sapply(1:ncluster,function(x) Matrix::rowSums(res_epiConv_full@mat[["peak"]][,clust==x]))
-bulk<-t(t(bulk)/colSums(bulk)*median(colSums(bulk)))
-```
-In the script above, we aggregate the binary matrix by clusters and embed single cells into one-dimensional(1D) space. Next, we calculate the z-scores:
-```
-freq<-freq.estimate(res_epiConv_full@mat[["peak"]])
-zsingle<-zscore.single(mat=res_epiConv_full@mat[["peak"]][freq>0.01,],
-                     Smat=res_epiConv_full[["samplBlurred"]],
+freq<-freq.estimate(res_epiConv@mat[["peak"]])
+zsingle<-zscore.single(mat=res_epiConv@mat[["peak"]][freq>0.01,],
+                     Smat=res_epiConv[["sampl_full_denoise"]]+res_epiConv[["sampl_full"]]/100,
                      qt=0.05,
-                     lib_size=res_epiConv_full$lib_size)
+                     lib_size=res_epiConv$lib_size_full)
+marker<-rownames(zsingle)[apply(zsingle,1,function(x) (x>2)/length(x))>0.1]
 ```
 + `zscore.single`: calculate the z-scores.
   - `mat`: the accessibility matrix. Here we only examine the peaks with frequency > 0.01.
-  - `Smat`: the similarity matrix.
+  - `Smat`: the similarity matrix. We use `res_epiConv[["sampl_full_denoise"]]+res_epiConv[["sampl_full"]]/100` to avoid cells with equal similarities as the similarities in denoised matrix are integer values.
   - `qt`: the percent of cells as neighbors. For example, qt = 0.05 means the top 5% cells with highest similarities is the cell's neighbors.
-  - `lib_size`: the library size of single cells. For simplicity, we use the library size inferred in previous steps. Library size infered through other ways  is also acceptable but may change the results.
-  
-When the cluster information is available, we can average the z-scores of single cells in one cluster to get its markers. Here, we select the top 5 peaks with highest z-scores for each cluster and compare them with aggregated bulk profiles:
-```
-zmean<-sapply(1:ncluster,function(x) rowMeans(zsingle[,clust==x]))
-marker<-as.vector(apply(zmean,2,function(x) names(x)[order(x,decreasing=T)[1:5]]))
+  - `lib_size`: the scaling factor of single cells. Here we use the library size inferred in previous steps.
+Here, we select peaks with z-score > 2 in at least 10% cells as differentially accessible peaks:
 
-odr<-order(res_epiConv_full@embedding[["pbmc5k1d"]])
-heatmap.plus::heatmap.plus(zsingle[marker,odr],
-                           col=colorRampPalette(c("lightblue","black","yellow"))(32),
-                           labCol=F,
-                           labRow=F,
-                           ColSideColors=cbind(rainbow(ncluster)[clust[odr]],"white"),
-                           Rowv=NA,
-                           Colv=NA)
-heatmap.plus::heatmap.plus(bulk[marker,],
-                           col=colorRampPalette(c("lightblue","black","yellow"))(32),
-                           labCol=F,
-                           labRow=F,
-                           ColSideColors=cbind(rainbow(ncluster),"white"),
-                           Rowv=NA,
-                           Colv=NA)
+Finally we plot the heatmap of zscores:
 ```
-The ATAC-seq does not match the expression data very well. But we can still examine the promoters of some known marker genes to learn the identies of cells:
-```
-cmarker<-c("chr17:38721364-38722083", ##CCR7
-	  "chr11:118175174-118175840", ##CD3E
-	  "chr2:87034420-87036115", ##CD8A
-	  "chr19:51875736-51876612") ##NKG7
-heatmap.plus::heatmap.plus(zsingle[cmarker,odr],
-                           col=colorRampPalette(c("lightblue","black","yellow"))(32),
-                           labCol=F,
-                           labRow=c("CCR7","CD3E","CD8A","NKG7"),
-                           ColSideColors=cbind(rainbow(ncluster)[clust[odr]],"white"),
-                           Rowv=NA,
-                           Colv=NA)
-```
-One novel feature of our algorithm is that we can select DE peaks without clustering. If the number of cells showing high z-scores (e.g. > 2) exceeds the threshold (e.g. > 10%) for one peak, we consider it to be differentially accessible in some cells. From the heatmap above, we can easily find that these markers will be selected by the criteria given that there are always a fraction of cells with high z-scores in these peaks.<br>
-Next, we will show another example. We note that CD8 T cells and NK cells are close to each other and share many common markers. Here we want to find the differentially accessible peaks within CD8 T cells and NK cells:
-```
-retain<-which(clust%in%c(4,8))  ##depending on the result of densityClust above 
-freq<-freq.estimate(res_epiConv_full@mat[["peak"]][,retain])
-zsingle<-zscore.single(mat=res_epiConv_full@mat[["peak"]][freq>0.01,retain],
-                       Smat=res_epiConv_full[["samplBlurred"]][retain,retain],
-                       qt=0.1,
-                       lib_size=res_epiConv_full$lib_size[retain])
-DEfrac<-apply(zsingle,1,function(x) sum(x>2)/length(x))
-marker<-rownames(zsingle)[DEfrac>0.1]
-
 dis<-1-cor(t(zsingle[marker,]),method="spearman")
 umap_settings<-umap::umap.defaults
 umap_settings$input<-"dist"
@@ -398,8 +353,41 @@ umap_settings$n_components<-1
 xcoor<-umap::umap(dis,config=umap_settings)$layout[,1]
 peak_odr<-order(xcoor)
 
-odr<-order(res_epiConv_full@embedding[["pbmc5k1d"]][retain])
-heatmap.plus::heatmap.plus(zsingle[marker[peak_odr],odr],
+umap_settings<-umap::umap.defaults
+umap_settings$input<-"dist"
+umap_settings$n_components<-1
+Smat<-res_epiConv[["sampl_full_denoise"]]
+umap_res<-umap::umap(as.matrix(max(Smat)-Smat),config=umap_settings)$layout
+res_epiConv<-add.embedding(obj=res_epiConv,x=umap_res,name="pbmc5k1d")
+odr<-order(res_epiConv@embedding[["pbmc5k1d"]])
+
+heatmap.plus::heatmap.plus(zsingle[peak_odr,odr],
+                           col=colorRampPalette(c("lightblue","black","yellow"))(32),
+                           labCol=F,
+                           labRow=F,
+                           ColSideColors=cbind(rainbow(ncluster)[clust[odr]],"white"),
+                           Rowv=NA,
+                           Colv=NA)
+```
+Cells from cluster 3 and 9 (NK and effector CD8+ T cells) share many common markers. In order to find differentially accessible peaks between them, we remove other cells to prevent selecting their common markers:
+```
+retain<-which(clust%in%c(3,9))
+freq<-freq.estimate(res_epiConv@mat[["peak"]][,retain])
+zsingle2<-zscore.single(mat=res_epiConv@mat[["peak"]][freq>0.01,retain],
+                       Smat=res_epiConv[["samplBlurred"]][retain,retain],
+                       qt=0.1,
+                       lib_size=res_epiConv$lib_size_full[retain])
+marker2<-rownames(zsingle2)[apply(zsingle2,1,function(x) sum(x>2)/length(x))>0.1]
+
+dis<-1-cor(t(zsingle2[marker2,]),method="spearman")
+umap_settings<-umap::umap.defaults
+umap_settings$input<-"dist"
+umap_settings$n_components<-1
+xcoor<-umap::umap(dis,config=umap_settings)$layout[,1]
+peak_odr<-order(xcoor)
+
+odr<-order(res_epiConv@embedding[["pbmc5k1d"]][retain])
+heatmap.plus::heatmap.plus(zsingle2[marker2[peak_odr],odr],
                            col=colorRampPalette(c("lightblue","black","yellow"))(32),
                            labCol=F,
                            labRow=F,
@@ -407,8 +395,5 @@ heatmap.plus::heatmap.plus(zsingle[marker[peak_odr],odr],
                            Rowv=NA,
                            Colv=NA)
 ```
-In the script above, we perform differential analysis on cluster 4 and 8 (CD8 T cells and NK cells). Gernerally it is better to exclude  irrelevant cells as we cannot avoid selecting DE peaks from them when cluster information is not available. As the cell number is low (624 cells), we increase `qt` parameter in `zscore.single` to 0.1 to reduce the noise. Peaks with z-scores > 2 in at least 10% cells are selected as DE peaks and are embedded to 1D space in order to cluster peaks with similar patterns together. The majority of peaks are differentially accessible between CD8 T cells and NK cells but the chromtin states of some peaks are not uniform even within clusters.
-
-
 
 
