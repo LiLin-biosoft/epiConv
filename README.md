@@ -335,7 +335,7 @@ zsingle<-zscore.single(mat=res_epiConv@mat[["peak"]][freq>0.01,],
                      Smat=res_epiConv[["sampl_full_denoise"]]+res_epiConv[["sampl_full"]]/100,
                      qt=0.05,
                      lib_size=res_epiConv$lib_size_full)
-marker<-rownames(zsingle)[apply(zsingle,1,function(x) (x>2)/length(x))>0.1]
+marker<-rownames(zsingle)[apply(zsingle,1,function(x) sum(x>2)/length(x))>0.1]
 ```
 + `zscore.single`: calculate the z-scores.
   - `mat`: the accessibility matrix. Here we only examine the peaks with frequency > 0.01.
