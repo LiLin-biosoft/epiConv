@@ -316,7 +316,7 @@ source("~/epiConv/epiConv_functions.R")
 res_epiConv<-readRDS(file="pbmc5k/res_epiConv.rds")
 
 library(densityClust)
-ncluster<-8
+ncluster<-10
 dclust_obj<-densityClust(res_epiConv@embedding[["sampl_full_denoise"]],gaussian=T)
 rho_cut<-quantile(dclust_obj$rho,0.5)
 delta_cut<-sort(dclust_obj$delta[dclust_obj$rho>=rho_cut],decreasing=T)[ncluster+1]
