@@ -305,6 +305,7 @@ saveRDS(res_epiConv,file="pbmc5k/res_epiConv.rds")
 + `dim.reduce`: calculate latent features from the similarity matrix.
   - `Smat`: the similarity matrix.
   - `neigs`: the number of latent features to calculate.
+  
 The results `eigs` is a matrix with latent features(row/cell and column/feature). Features are orthogonal to each other and sorted by their Eigen values in decreasing order. After obtaining latent features, we calculate the Euclidean distance between cells and embed cells into low-dimension space. The result by Eigen value decompsition is similar with other methods that infer latent features (e.g cisTopic). However, it sometimes does not agree with the first denoising method as the data discarded can be noise or useful information. Generally, it is better to compare the results between two denoising methods when analyzing the data.
 
 
