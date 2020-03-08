@@ -309,7 +309,7 @@ The results `eigs` is a matrix with latent features(row/cell and column/feature)
 
 
 ### Detect differentially accessible peaks
-All figures plotted below can be found in `Differential_analysis.pdf`.<br>
+All figures plotted below can be found in `figures.pdf`.<br>
 Before differential analysis, we cluster the cells using densityClust package and compare the results from epiConv-full and epiConv-simp:
 ```
 source("~/epiConv/epiConv_functions.R")
