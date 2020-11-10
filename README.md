@@ -109,6 +109,7 @@ knn_update<-eigs.knn(Smat=Smat,
   - `knn_reference`: number of neighbors for cells in reference datasets to learn in each target dataset.
   - `threshold`: the Z-score threshold used to filter false neighbors.
   - In output, `knn_update[["A"]][["A]]` contains the snn matrix of dataset A and `knn_update[["A"]][["B"]]` contains the knn matrix that cells from A pick their nearest neighbors in B.<br><br>
+
 In the script above, the snn matrix is calculated from ATAC-seq. If the dataset contrains RNA-seq profiles, it is better to calculate the snn matrix based on both RNA-seq and ATAC-seq.
 ```
 knn_update[["co-assay"]][["co-assay"]]<-cal.snn(Smat=as.matrix(dist(feature_coassay))*(-1),
