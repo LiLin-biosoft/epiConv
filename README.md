@@ -5,7 +5,7 @@ EpiConv is a  algorithm to cluster scATAC-seq data and correct batch effects.
 
 ## Requirements
 EpiConv is developed in R 3.5.1, the following packages are required:
-Matrix,SingleCellExperiment,Seurat,PRIMME,umap,bigmemory,biganalytics
+`Matrix`,`SingleCellExperiment`,`Seurat`,`PRIMME`,`umap`,`bigmemory`,`biganalytics`<br>
 They can be installed through CRAN or bioconductor.
 
 We will align one co-assay data of postnatal day 0 mouse cortex onto scATAC-seq data to show the usage of epiConv. The data after basic quality control is stored in `sce.rds`.
