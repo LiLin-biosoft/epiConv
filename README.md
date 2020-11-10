@@ -138,8 +138,14 @@ colData(sce)<-cbind(colData(sce),cluster=temp[,3])
   - `reference`: the datasets used as reference, see above.
   - `knn_transfer_correction`: non-anchor cells need to learn the correction parameters from anchor cells. Here specify the number of nearest anchors used.
 
-Now we can compare the results of co-assay data, integrated ATAC-seq data before batch correction and after correction.
+Now we see the results before and after batch correction.
 ```
-
+plot(sce@reducedDims$ATAC_umap,pch="+",cex=0.5,col=batch)
+plot(sce@reducedDims$ATACcorrected_umap,pch="+",cex=0.5,col=batch)
+plot(sce@reducedDims$ATACcorrected_umap,pch="+",cex=0.5,
+     col=rainbow(length(unique(sce$cluster)))[sce$cluster])
+text(x=tapply(sce@reducedDims$ATACcorrected_umap[,1],list(sce$cluster),median),
+     y=tapply(sce@reducedDims$ATACcorrected_umap[,2],list(sce$cluster),median),
+     labels=levels(sce$cluster))
 ```
 
