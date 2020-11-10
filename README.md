@@ -41,6 +41,7 @@ In the script above, we combined 50 PCs from RNA-seq `sce@reducedDims$PCA_RNA` a
   - `pcs`: principal components from RNA-seq.
   - `neigs`: number of features to calculate.
   - the output contains the features from `pcs` and Eigen vectors from similarity matrix. Eigen vectors are scaled to make summed variance of Eigen vectors equal to that of PCs.
+
 Next we align the co-assay data onto scATAC-seq reference.
 ```
 Smat<-run.epiConv(mat=assays(sce)$counts,
