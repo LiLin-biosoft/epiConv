@@ -13,7 +13,7 @@ We will align one co-assay data of postnatal day 0 mouse cortex onto scATAC-seq 
 source("epiConv_funs.R")
 sce<-readRDS(file="sce.rds")
 ```
-First, we need to combine RNA-seq and ATAC-seq to resolve the relationships of single cells in co-assay data. If your dataset does not contain RNA-seq profiles, this step can be skipped.
+First, we need to combine RNA-seq and ATAC-seq data to resolve the relationships of single cells in co-assay data. If there are no RNA-seq profiles, this step can be skipped.
 ```
 index_coassay<-which(colData(sce)$ident=="co-assay")
 Smat<-run.epiConv(mat=assays(sce)$counts[,index_coassay],
