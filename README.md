@@ -1,14 +1,14 @@
 # epiConv tutorial
 Li Lin<br>
 
-EpiConv is an algorithm to cluster scATAC-seq data and correct batch effects.
+EpiConv is an algorithm of clustering scATAC-seq data and correcting batch effects.
 
 ## Requirements
 EpiConv is developed in R 3.5.1, the following packages are required:
 `Matrix`,`SingleCellExperiment`,`Seurat`,`PRIMME`,`umap`,`bigmemory`,`biganalytics`<br>
 They can be installed through CRAN or bioconductor.
 
-We will align one co-assay data of postnatal day 0 mouse cortex onto scATAC-seq data to show the usage of epiConv. The data after basic quality control is stored in `sce.rds`.
+We will integrate one co-assay data of postnatal day 0 mouse cortex and one scATAC-seq data to show the usage of epiConv. If your data does not contain RNA-seq profiles, some steps can be skipped. The data after basic quality control is stored in `sce.rds`.
 ```
 source("epiConv_funs.R")
 sce<-readRDS(file="sce.rds")
@@ -27,22 +27,22 @@ feature_coassay<-cal.feature(Smat=Smat,
                                  pcs=sce@reducedDims$PCA_RNA[index_coassay,],
                                  neigs=50)
 ```
-In the script above, we combined 50 PCs from RNA-seq `sce@reducedDims$PCA_RNA` and 50 Eigen vectors from ATAC-seq. `feature_coassay` contains 100 features of each cell of co-assay data.
+In the script above, we combined 50 principal components (PCs) from RNA-seq `sce@reducedDims$PCA_RNA` and 50 Eigen vectors from ATAC-seq. `feature_coassay` contains 100 features in total and will be used in following steps.
 + `run.epiConv`: calculate the similarites between single cells.
   - `mat`: Matrix object constains the peak by cell matrix.
   - `lib_size`: library size of single cells.
   - `nbootstrap`: number of bootstraps performed.
   - `nsample`: number of peaks sampled in each bootstrap.
-  - `bin`: many functions are with `bin` parameter. Given R does not support very long vectors, epiConv divides the matrix into several small matrix (e.g. `bin=10000` means 10,000 cells per matrix) and performs the calculation to avoid errors.
+  - `bin`: As R does not support very long vectors, we divides the matrix (`bin=10000` means 10,000 cells per sub-matrix) to avoid errors.
   - `inf_replace`: sometimes the similarity is -Inf, we use a small value to replace it.
   
 + `cal.feature`: calculate features from similarity matrix and combine them with PCs from RNA-seq.
   - `Smat`: the similarity matrix.
   - `pcs`: principal components from RNA-seq.
-  - `neigs`: number of features to calculate.
-  - the output contains the features from `pcs` and Eigen vectors from similarity matrix. Eigen vectors are scaled to make summed variance of Eigen vectors equal to that of PCs.
+  - `neigs`: number of Eigen vectors to calculate.
+  - the output contains the features from `pcs` and Eigen vectors from similarity matrix. Eigen vectors are scaled to make summed variance of ATAC-seq features equal to that of RNA-seq.
 
-Next we align the co-assay data onto scATAC-seq reference.
+Next we project the co-assay data onto scATAC-seq reference.
 ```
 Smat<-run.epiConv(mat=assays(sce)$counts,
                   lib_size=sce$lib_size,
@@ -58,7 +58,8 @@ In the script above, we first calculated the simiarlity matrix from ATAC-seq dat
   - `Smat`: the similarity matrix.
   - `knn`: number of nearest neighbors for umap and louvain clustering.
   - `umap_settings`: custom umap settings by editing `umap::umap.defaults`.
-  - `resolution`: the resolution parameter of louvain clustering. This parameter can be a numeric vector to try clustering with more than one resolutions. When set to null, the function does not perform clustering.
+  - `resolution`: the resolution parameter of louvain clustering. This parameter can be numeric vector and results of each setting will be returned. When set to null, the function does not perform clustering.
+  - The 1st and 2nd columns contain umap results and other columns contain clustering results.
   
 Next we correct batch effects.
 ```
@@ -74,7 +75,7 @@ guide_features<-sapply(levels(batch),function(x){
 })
 names(guide_features)<-levels(batch)
 ```
-We use Eigen Value Decomposition to deconvolute the similarity matrix into 30 eigen vectors and store the residuals in `residual_mat`. Batch correction is performed on Eigen vectors. These Eigen vectors are also used as guiding features.
+We use Eigen Value Decomposition to deconvolute the similarity matrix into 30 Eigen vectors and store the residuals in `residual_mat`. Batch correction is performed on Eigen vectors. Eigen vectors are also used as guiding features.
 + `dim.reduce`: perform Eigen Value Decompostion.
   - `Smat`: the similarity matrix.
   - `neigs`: the number of Eigen vectors to calculate.
@@ -98,20 +99,20 @@ knn_update<-eigs.knn(Smat=Smat,
   - `Smat`: the similarity matrix.
   - `features`: the guiding features.
   - `batch`: factor that contains batch information.
-  - `reference`: which dataset in `batch` is used as reference. Reference datasets should contain all cell types. If there are more than one reference datasets (A, B and C), we can use `c("A","B","C")` to align B to A, and align C to A and B.
-  - `knn_target`: number of neighbors for cells in target datasets to learn in each reference dataset.
-  - `knn_reference`: number of neighbors for cells in reference datasets to learn in each target dataset.
+  - `reference`: which dataset in `batch` is used as reference. Reference should contain all cell types. If there are more than one references (A, B and C), we can specify `reference=c("A","B","C")` to align B to A, and align C to A and B.
+  - `knn_target`: number of neighbors for cells in target datasets (non-reference datasets) to learn in each reference.
+  - `knn_reference`: number of neighbors for cells in references to learn in each target dataset.
   - `threshold`: the Z-score threshold used to filter false neighbors.
-  - In output, `knn_update[["A"]][["A]]` contains the snn matrix of dataset A and `knn_update[["A"]][["B"]]` contains the knn matrix that cells from A pick their nearest neighbors in B.<br><br>
+  - In output, `knn_update[["A"]][["A]]` contains the shared nearest neighbor (snn) matrix of dataset A and `knn_update[["A"]][["B"]]` contains the neighbor matrix that cells from A pick their nearest neighbors in B.<br><br>
 
 In the script above, the snn matrix is calculated from ATAC-seq. If the dataset contrains RNA-seq profiles, it is better to calculate the snn matrix based on both RNA-seq and ATAC-seq.
 ```
 knn_update[["co-assay"]][["co-assay"]]<-cal.snn(Smat=as.matrix(dist(feature_coassay))*(-1),
                                                 knn=floor(nrow(feature_coassay)*0.01))  ##skip if there are no RNA-seq profiles.
 ```
-+ `cal.snn`: calculate shared nearest neighbor (snn) matrix from similarity matrix.
++ `cal.snn`: calculate snn matrix from similarity matrix.
   - `Smat`: the similarity matrix.
-  - `knn`: number of neighbors. We generally set it to 1% of total cells.
+  - `knn`: number of neighbors. We generally set it to 1% (>=20; =<200) of total cells .
 
 Next we correct Eigen vectors and perform umap and louvain clustering.
 ```
@@ -123,7 +124,7 @@ eigs_corrected<-eigs.correct(eigs=eigs$vectors,
 
 Smat_corrected<-tcrossprod(eigs_corrected,t(t(eigs_corrected)*eigs$values))+residual_mat
 
-temp<-run.umap_louvain(Smat=Smat_corrected,knn=20,umap_settings=NULL,resolution=c(0.4,0.8))
+temp<-run.umap_louvain(Smat=Smat_corrected,knn=20,umap_settings=NULL,resolution=c(0.4,0.8)) ##Here we try resolution=0.4 and 0.8.
 sce@reducedDims$ATACcorrected_umap<-as.matrix(temp[,1:2])
 colData(sce)<-cbind(colData(sce),cluster=temp[,3])
 ```
@@ -136,12 +137,12 @@ colData(sce)<-cbind(colData(sce),cluster=temp[,3])
 
 Now we see the results before and after batch correction.
 ```
-plot(sce@reducedDims$ATAC_umap,pch="+",cex=0.5,col=batch)
-plot(sce@reducedDims$ATACcorrected_umap,pch="+",cex=0.5,col=batch)
+plot(sce@reducedDims$ATAC_umap,pch="+",cex=0.5,col=batch)  ##results before batch correction
+plot(sce@reducedDims$ATACcorrected_umap,pch="+",cex=0.5,col=batch)  ##results after batch correction
 plot(sce@reducedDims$ATACcorrected_umap,pch="+",cex=0.5,
-     col=rainbow(length(unique(sce$cluster)))[sce$cluster])
+     col=rainbow(length(unique(sce$cluster)))[sce$cluster])  ##clustering
 text(x=tapply(sce@reducedDims$ATACcorrected_umap[,1],list(sce$cluster),median),
      y=tapply(sce@reducedDims$ATACcorrected_umap[,2],list(sce$cluster),median),
-     labels=levels(sce$cluster))
+     labels=levels(sce$cluster))  ##cluster label
 ```
 
