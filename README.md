@@ -84,7 +84,7 @@ If we have co-assay data, PCs from RNA-seq are also used as guiding features.
 guide_features[["co-assay"]]<-cbind(guide_features[["co-assay"]],
                                     sce@reducedDims$PCA_RNA[index_coassay,])  ##skip if there are no RNA-seq profiles.
 ```
-Next we use the similarity matrix and guiding features to calculate the knn matrix.
+Next we use the similarity matrix and guiding features to calculate the neighbor matrix across datasets.
 ```
 knn_update<-eigs.knn(Smat=Smat,
                      features=guide_features,
