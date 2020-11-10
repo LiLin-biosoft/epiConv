@@ -6,7 +6,7 @@ EpiConv is developed in R 3.5.1, the following packages are required:<br>
 `Matrix`,`SingleCellExperiment`,`Seurat`,`PRIMME`,`umap`,`bigmemory`,`biganalytics`<br>
 They can be installed through CRAN or bioconductor.
 
-We will integrate one co-assay data of postnatal day 0 mouse cortex (GSE126074) and one scATAC-seq data from [10x Genomics](https://support.10xgenomics.com/single-cell-atac/datasets)to show the usage of epiConv. If your data does not contain RNA-seq profiles, some steps can be skipped. The data after basic quality control is stored in `sce.rds`.
+We will integrate one co-assay data of postnatal day 0 mouse cortex (GSE126074) and one scATAC-seq data from [10x Genomics](https://support.10xgenomics.com/single-cell-atac/datasets) to show the usage of epiConv. If your data does not contain RNA-seq profiles, some steps can be skipped. The data after basic quality control is stored in `sce.rds`.
 ```
 source("epiConv_funs.R")
 sce<-readRDS(file="sce.rds")
