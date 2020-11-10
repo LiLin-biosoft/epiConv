@@ -1,7 +1,7 @@
 # epiConv tutorial
 Li Lin<br>
 
-EpiConv is a  algorithm to cluster scATAC-seq data and correct batch effects.
+EpiConv is an algorithm to cluster scATAC-seq data and correct batch effects.
 
 ## Requirements
 EpiConv is developed in R 3.5.1, the following packages are required:
