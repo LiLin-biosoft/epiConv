@@ -78,6 +78,7 @@ We use Eigen Value Decomposition to deconvolute the similarity matrix into 30 ei
 + `dim.reduce`: perform Eigen Value Decompostion.
   - `Smat`: the similarity matrix.
   - `neigs`: the number of Eigen vectors to calculate.
+
 If we have co-assay data, PCs from RNA-seq are also used as guiding features.
 ```
 guide_features[["co-assay"]]<-cbind(guide_features[["co-assay"]],
