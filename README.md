@@ -23,19 +23,11 @@ Smat<-run.epiConv(mat=assays(sce)$counts[,index_coassay],
                   bin=5000,
                   inf_replace=(-8))
 
-
 feature_coassay<-cal.feature(Smat=Smat,
                                  pcs=sce@reducedDims$PCA_RNA[index_coassay,],
                                  neigs=50)
-
-embedding_coassay<-umap::umap(feature_coassay)$layout
-sce@reducedDims$coassay_umap<-embedding_coassay[match(sce$barcode,sce$barcode[index_coassay]),]
-snn_graph<-FindNeighbors(feature_coassay,k.param=20,prune.SNN=1/15)$nn
-temp<-FindClusters(snn_graph,resolution=0.8)[,1]
-colData(sce)<-cbind(colData(sce),
-                    coassay_cluster=temp[match(sce$barcode,sce$barcode[index_coassay])])
 ```
-In the script above, we combined 50 PCs from RNA-seq `sce@reducedDims$PCA_RNA` and 50 Eigen vectors from ATAC-seq and perform conventional dimension reduction and clustering.
+In the script above, we combined 50 PCs from RNA-seq `sce@reducedDims$PCA_RNA` and 50 Eigen vectors from ATAC-seq. `feature_coassay` contains 100 features of each cell of co-assay data.
 + `run.epiConv`: calculate the similarites between single cells.
   - `mat`: Matrix object constains the peak by cell matrix.
   - `lib_size`: library size of single cells.
@@ -44,11 +36,11 @@ In the script above, we combined 50 PCs from RNA-seq `sce@reducedDims$PCA_RNA` a
   - `bin`: many functions are with `bin` parameter. Given R does not support very long vectors, epiConv divides the matrix into several small matrix (e.g. `bin=10000` means 10,000 cells per matrix) and performs the calculation to avoid errors.
   - `inf_replace`: sometimes the similarity is -Inf, we use a small value to replace it.
   
-+ `cal.feature`: calculate features from similarity matrix.
++ `cal.feature`: calculate features from similarity matrix and scale them to match the PCs from RNA-seq.
   - `Smat`: the similarity matrix.
   - `pcs`: principal components from RNA-seq.
-  - `neigs`: number of features.
-
+  - `neigs`: number of features to calculate.
+  - the output contains the features from `pcs` and Eigen vectors from similarity matrix. Eigen vectors are scaled to make summed variance of Eigen vectors equal to that of PCs.
 Next we align the co-assay data onto scATAC-seq reference.
 ```
 Smat<-run.epiConv(mat=assays(sce)$counts,
