@@ -131,7 +131,7 @@ colData(sce)<-cbind(colData(sce),cluster=temp[,3])
   - `knn_mat`: the knn matrix.
   - `batch`: the batch information.
   - `reference`: the datasets used as reference, see above.
-  - `knn_transfer_correction`: non-anchor cells need to learn the correction parameters from anchor cells. Here specify the number of nearest anchors used.
+  - `knn_transfer_correction`: the number of anchors used by non-anchor cells to learn their corrections.
 
 Now we see the results before and after batch correction.
 ```
