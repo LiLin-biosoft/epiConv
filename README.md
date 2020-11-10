@@ -58,7 +58,7 @@ In the script above, we first calculated the simiarlity matrix from ATAC-seq dat
   - `Smat`: the similarity matrix.
   - `knn`: number of nearest neighbors for umap and louvain clustering.
   - `umap_settings`: custom umap settings by editing `umap::umap.defaults`.
-  - `resolution`: the resolution parameter of louvain clustering. This parameter can be a numeric vector. When set to null, the function does not perform clustering.
+  - `resolution`: the resolution parameter of louvain clustering. This parameter can be a numeric vector to try clustering with more than one resolutions. When set to null, the function does not perform clustering.
   
 Next we correct batch effects.
 ```
