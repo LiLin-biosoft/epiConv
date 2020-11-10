@@ -36,7 +36,7 @@ In the script above, we combined 50 PCs from RNA-seq `sce@reducedDims$PCA_RNA` a
   - `bin`: many functions are with `bin` parameter. Given R does not support very long vectors, epiConv divides the matrix into several small matrix (e.g. `bin=10000` means 10,000 cells per matrix) and performs the calculation to avoid errors.
   - `inf_replace`: sometimes the similarity is -Inf, we use a small value to replace it.
   
-+ `cal.feature`: calculate features from similarity matrix and scale them to match the PCs from RNA-seq.
++ `cal.feature`: calculate features from similarity matrix and combine them with PCs from RNA-seq.
   - `Smat`: the similarity matrix.
   - `pcs`: principal components from RNA-seq.
   - `neigs`: number of features to calculate.
