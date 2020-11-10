@@ -109,7 +109,7 @@ In the script above, the snn matrix is calculated from ATAC-seq. If the dataset 
 knn_update[["co-assay"]][["co-assay"]]<-cal.snn(Smat=as.matrix(dist(feature_coassay))*(-1),
                                                 knn=floor(nrow(feature_coassay)*0.01))  ##skip if there are no RNA-seq profiles.
 ```
-+ `cal.snn`: calculate shared nearest neighbors matrix from similarity matrix.
++ `cal.snn`: calculate shared nearest neighbor (snn) matrix from similarity matrix.
   - `Smat`: the similarity matrix.
   - `knn`: number of neighbors. We generally set it to 1% of total cells.
 Next we correct Eigen vectors and perform umap and louvain clustering.
