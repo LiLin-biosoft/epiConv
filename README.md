@@ -112,6 +112,7 @@ knn_update[["co-assay"]][["co-assay"]]<-cal.snn(Smat=as.matrix(dist(feature_coas
 + `cal.snn`: calculate shared nearest neighbor (snn) matrix from similarity matrix.
   - `Smat`: the similarity matrix.
   - `knn`: number of neighbors. We generally set it to 1% of total cells.
+
 Next we correct Eigen vectors and perform umap and louvain clustering.
 ```
 eigs_corrected<-eigs.correct(eigs=eigs$vectors,
