@@ -103,12 +103,12 @@ knn_update<-eigs.knn(Smat=Smat,
 + `eigs.knn`: learn neighbors across multiple datasets.
   - `Smat`: the similarity matrix.
   - `features`: the guiding features.
-  - `batch`: batch information.
-  - `reference`: the datasets used as reference. Reference datasets should contain all cell types. If there are more than one reference datasets, we can use `c("A","B","C")` to align B to A, and align C to A and B.
+  - `batch`: factor that contains batch information.
+  - `reference`: which dataset in `batch` is used as reference. Reference datasets should contain all cell types. If there are more than one reference datasets (A, B and C), we can use `c("A","B","C")` to align B to A, and align C to A and B.
   - `knn_target`: number of neighbors for cells in target datasets to learn in each reference dataset.
   - `knn_reference`: number of neighbors for cells in reference datasets to learn in each target dataset.
   - `threshold`: the Z-score threshold used to filter false neighbors.
-  - In output, `knn_update[["A"]][["A]]` contains the snn matrix of dataset A and `knn_update[["A"]][["B"]]` contains the knn matrix that cells from A pick their nearest neighbors in B.<br>
+  - In output, `knn_update[["A"]][["A]]` contains the snn matrix of dataset A and `knn_update[["A"]][["B"]]` contains the knn matrix that cells from A pick their nearest neighbors in B.<br><br>
 In the script above, the snn matrix is calculated from ATAC-seq. If the dataset contrains RNA-seq profiles, it is better to calculate the snn matrix based on both RNA-seq and ATAC-seq.
 ```
 knn_update[["co-assay"]][["co-assay"]]<-cal.snn(Smat=as.matrix(dist(feature_coassay))*(-1),
