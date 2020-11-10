@@ -122,7 +122,7 @@ eigs_corrected<-eigs.correct(eigs=eigs$vectors,
 
 Smat_corrected<-tcrossprod(eigs_corrected,t(t(eigs_corrected)*eigs$values))+residual_mat
 
-temp<-run.umap_louvain(Smat=Smat_corrected,knn=20,umap_settings=NULL,resolution=0.8)
+temp<-run.umap_louvain(Smat=Smat_corrected,knn=20,umap_settings=NULL,resolution=c(0.4,0.8))
 sce@reducedDims$ATACcorrected_umap<-as.matrix(temp[,1:2])
 colData(sce)<-cbind(colData(sce),cluster=temp[,3])
 ```
