@@ -74,8 +74,8 @@ guide_features<-sapply(levels(batch),function(x){
 })
 names(guide_features)<-levels(batch)
 ```
-We use Eigen Value Decomposition to deconvolute the similarity matrix into 30 Eigen vectors and store the residuals in `residual_mat`. Batch correction is performed on Eigen vectors. Eigen vectors are also used as guiding features.
-+ `dim.reduce`: perform Eigen Value Decompostion.
+We use eigenvalue decomposition to deconvolute the similarity matrix into 30 Eigen vectors and store the residuals in `residual_mat`. Batch correction is performed on Eigen vectors. Eigen vectors are also used as guiding features.
++ `dim.reduce`: perform eigenvalue decompostion.
   - `Smat`: the similarity matrix.
   - `neigs`: the number of Eigen vectors to calculate.
 
