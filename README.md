@@ -13,6 +13,7 @@ sce<-readRDS(file="sce.rds")
 ```
 First, we need to combine RNA-seq and ATAC-seq data to resolve the relationships of single cells in co-assay data. If there are no RNA-seq profiles, this step can be skipped.
 ```
+##skip if there are no RNA-seq profiles
 index_coassay<-which(colData(sce)$ident=="co-assay")
 Smat<-run.epiConv(mat=assays(sce)$counts[,index_coassay],
                   lib_size=sce$lib_size[index_coassay],
@@ -22,10 +23,10 @@ Smat<-run.epiConv(mat=assays(sce)$counts[,index_coassay],
                   inf_replace=(-8))
 
 feature_coassay<-cal.feature(Smat=Smat,
-                                 pcs=sce@reducedDims$PCA_RNA[index_coassay,],
+                                 pcs=reducedDims(sce)$PCA_RNA[index_coassay,],
                                  neigs=50)
 ```
-In the script above, we combined 50 principal components (PCs) from RNA-seq `sce@reducedDims$PCA_RNA` and 50 Eigen vectors from ATAC-seq. `feature_coassay` contains 100 features in total and will be used in following steps.
+In the script above, we combined 50 principal components (PCs) from RNA-seq `reducedDims(sce)$PCA_RNA` and 50 Eigen vectors from ATAC-seq. `feature_coassay` contains 100 features in total and will be used in following steps.
 + `run.epiConv`: calculate the similarites between single cells.
   - `mat`: Matrix object constains the peak by cell matrix.
   - `lib_size`: library size of single cells.
@@ -48,7 +49,7 @@ Smat<-run.epiConv(mat=assays(sce)$counts,
                   nsample=floor(nrow(sce)*0.2),
                   bin=10000,
                   inf_replace=(-8))
-sce@reducedDims$ATAC_umap<-run.umap_louvain(Smat=Smat,knn=20,
+reducedDims(sce)$ATAC_umap<-run.umap_louvain(Smat=Smat,knn=20,
                                             umap_settings=NULL,resolution=NULL)
 ```
 In the script above, we first calculated the simiarlity matrix from ATAC-seq data and perform umap. We can see obvious batch effects from the embeddings later. 
@@ -80,8 +81,9 @@ We use Eigen Value Decomposition to deconvolute the similarity matrix into 30 Ei
 
 If we have co-assay data, PCs from RNA-seq are also used as guiding features.
 ```
+##skip if there are no RNA-seq profiles
 guide_features[["co-assay"]]<-cbind(guide_features[["co-assay"]],
-                                    sce@reducedDims$PCA_RNA[index_coassay,])  ##skip if there are no RNA-seq profiles.
+                                    reducedDims(sce)$PCA_RNA[index_coassay,])
 ```
 Next we use the similarity matrix and guiding features to calculate the neighbor matrix across datasets.
 ```
@@ -105,8 +107,9 @@ knn_update<-eigs.knn(Smat=Smat,
 
 In the script above, the snn matrix is calculated from ATAC-seq. If the dataset contrains RNA-seq profiles, it is better to calculate the snn matrix based on both RNA-seq and ATAC-seq.
 ```
+##skip if there are no RNA-seq profiles
 knn_update[["co-assay"]][["co-assay"]]<-cal.snn(Smat=as.matrix(dist(feature_coassay))*(-1),
-                                                knn=floor(nrow(feature_coassay)*0.01))  ##skip if there are no RNA-seq profiles.
+                                                knn=floor(nrow(feature_coassay)*0.01))
 ```
 + `cal.snn`: calculate snn matrix from similarity matrix.
   - `Smat`: the similarity matrix.
@@ -123,7 +126,7 @@ eigs_corrected<-eigs.correct(eigs=eigs$vectors,
 Smat_corrected<-tcrossprod(eigs_corrected,t(t(eigs_corrected)*eigs$values))+residual_mat
 
 temp<-run.umap_louvain(Smat=Smat_corrected,knn=20,umap_settings=NULL,resolution=c(0.4,0.8)) ##Here we try resolution=0.4 and 0.8.
-sce@reducedDims$ATACcorrected_umap<-as.matrix(temp[,1:2])
+reducedDims(sce)$ATACcorrected_umap<-as.matrix(temp[,1:2])
 colData(sce)<-cbind(colData(sce),cluster=temp[,3])
 ```
 + `eigs.correct`: correct Eigen vectors.
@@ -135,12 +138,12 @@ colData(sce)<-cbind(colData(sce),cluster=temp[,3])
 
 Now we see the results before and after batch correction.
 ```
-plot(sce@reducedDims$ATAC_umap,pch="+",cex=0.5,col=batch)  ##results before batch correction
-plot(sce@reducedDims$ATACcorrected_umap,pch="+",cex=0.5,col=batch)  ##results after batch correction
-plot(sce@reducedDims$ATACcorrected_umap,pch="+",cex=0.5,
+plot(reducedDims(sce)$ATAC_umap,pch="+",cex=0.5,col=batch)  ##results before batch correction
+plot(reducedDims(sce)$ATACcorrected_umap,pch="+",cex=0.5,col=batch)  ##results after batch correction
+plot(reducedDims(sce)$ATACcorrected_umap,pch="+",cex=0.5,
      col=rainbow(length(unique(sce$cluster)))[sce$cluster])  ##clustering
-text(x=tapply(sce@reducedDims$ATACcorrected_umap[,1],list(sce$cluster),median),
-     y=tapply(sce@reducedDims$ATACcorrected_umap[,2],list(sce$cluster),median),
+text(x=tapply(reducedDims(sce)$ATACcorrected_umap[,1],list(sce$cluster),median),
+     y=tapply(reducedDims(sce)$ATACcorrected_umap[,2],list(sce$cluster),median),
      labels=levels(sce$cluster))  ##cluster label
 ```
 
