@@ -18,9 +18,14 @@ options(warn=-1)
 EpiConv is an algorithm of clustering scATAC-seq data and correcting batch effects.<br>
 To run the scripts below, package `SingleCellExperiment` is required to store the data. It can be installed through Bioconductor.
 
+### Integrate scATAC-seq data
+
 We will show the usage of epiConv on LPS-stimulated human bone marrow mononuclear cells (BMMCs, data from [GSE123580](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE123580)). The data contains resting and LPS-stimulated BMMCs.
 
 ```{r eval=FALSE}
+suppressMessages(library(epiConv))
+suppressMessages(library(SingleCellExperiment))
+
 mat<-readMM(file="bmmc_matrix.mtx")
 cell_info<-read.table(file="bmmc_ident.tsv")
 colnames(cell_info)<-c("barcode","ident")
@@ -100,8 +105,13 @@ plot(reducedDims(sce)$umap_corrected,pch="+",cex=0.5,col=rainbow(nlevels(sce$clu
 ```
 We calculate the similarity matrix from corrected Eigen vectors and then perfrom dimension reduction and clustering.<br>
 
+### Integrate multi-omics data with scATAC-seq data
+
 If cells are with transcriptome profiles (co-assay data), we can use the transcriptome to improve the performance of batch correction. Next, we will integrate one co-assay data of postnatal day 0 mouse cortex (GSE126074) and one scATAC-seq data from [10x Genomics](https://support.10xgenomics.com/single-cell-atac/datasets) to show the usage of epiConv. The data after basic quality control is stored in `sce.rds`.
 ```{r eval=FALSE}
+suppressMessages(library(epiConv))
+suppressMessages(library(SingleCellExperiment))
+
 sce<-readRDS(file="sce.rds")
 index_coassay<-which(colData(sce)$ident=="co-assay")
 Smat<-run.epiConv(mat=assays(sce)$counts[,index_coassay],

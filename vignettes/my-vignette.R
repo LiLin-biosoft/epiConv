@@ -4,6 +4,9 @@ opts_chunk$set(fig.align = 'center', fig.width = 6, fig.height = 5, dev = 'png')
 options(warn=-1)
 
 ## ----eval=FALSE---------------------------------------------------------------
+#  suppressMessages(library(epiConv))
+#  suppressMessages(library(SingleCellExperiment))
+#  
 #  mat<-readMM(file="bmmc_matrix.mtx")
 #  cell_info<-read.table(file="bmmc_ident.tsv")
 #  colnames(cell_info)<-c("barcode","ident")
@@ -73,6 +76,9 @@ options(warn=-1)
 #  plot(reducedDims(sce)$umap_corrected,pch="+",cex=0.5,col=rainbow(nlevels(sce$cluster))[sce$cluster])
 
 ## ----eval=FALSE---------------------------------------------------------------
+#  suppressMessages(library(epiConv))
+#  suppressMessages(library(SingleCellExperiment))
+#  
 #  sce<-readRDS(file="sce.rds")
 #  index_coassay<-which(colData(sce)$ident=="co-assay")
 #  Smat<-run.epiConv(mat=assays(sce)$counts[,index_coassay],
