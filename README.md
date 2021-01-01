@@ -5,6 +5,6 @@ EpiConv is an algorithm of clustering scATAC-seq data and correcting batch effec
 ```
 install.packages('devtools')  
 devtools::install_github("LiLin-biosoft/epiConv", build_vignettes = T)
-browseVignettes('ISnorm')
+browseVignettes('epiConv')
 ```
 Example data used in tutorial can be found in the folder `examples`.
