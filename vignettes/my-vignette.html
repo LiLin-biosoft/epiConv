@@ -12,7 +12,7 @@
 
 <meta name="author" content="Li Lin" />
 
-<meta name="date" content="2021-01-01" />
+<meta name="date" content="2021-01-02" />
 
 <title>epiConv Package</title>
 
@@ -311,7 +311,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">epiConv Package</h1>
 <h4 class="author">Li Lin</h4>
-<h4 class="date">2021-01-01</h4>
+<h4 class="date">2021-01-02</h4>
 
 
 
@@ -423,7 +423,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb9-17" title="17">  index&lt;-<span class="kw">which</span>(batch<span class="op">==</span>x)</a>
 <a class="sourceLine" id="cb9-18" title="18">  eigs<span class="op">$</span>vectors[index,]</a>
 <a class="sourceLine" id="cb9-19" title="19">})</a></code></pre></div>
-<p>The script has no difference with the first example.</p>
+<p>We calculate the similarity matrix on combined data and perfrom Eigenvalue Decomposition.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1">guide_features[[<span class="st">&quot;co-assay&quot;</span>]]&lt;-<span class="kw">cbind</span>(guide_features[[<span class="st">&quot;co-assay&quot;</span>]],</a>
 <a class="sourceLine" id="cb10-2" title="2">                                    <span class="kw">reducedDims</span>(sce)<span class="op">$</span>PCA_RNA[index_coassay,])</a></code></pre></div>
 <p>We add Principal Components (PCs) from RNA-seq to guide features. PCs from RNA-seq improve the results of knn matrix when the sequencing depth of ATAC-seq is shallow.</p>
@@ -434,7 +434,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb11-5" title="5">                     <span class="dt">knn_target=</span><span class="dv">50</span>,</a>
 <a class="sourceLine" id="cb11-6" title="6">                     <span class="dt">knn_reference=</span><span class="dv">10</span>,</a>
 <a class="sourceLine" id="cb11-7" title="7">                     <span class="dt">threshold=</span><span class="dv">2</span>)</a></code></pre></div>
-<p>The script has no difference with the first example.</p>
+<p>We create the knn graph.</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" title="1">knn_update[[<span class="st">&quot;co-assay&quot;</span>]][[<span class="st">&quot;co-assay&quot;</span>]]&lt;-<span class="kw">cal.snn</span>(<span class="dt">Smat=</span><span class="kw">as.matrix</span>(<span class="kw">dist</span>(feature_coassay))<span class="op">*</span>(<span class="op">-</span><span class="dv">1</span>),</a>
 <a class="sourceLine" id="cb12-2" title="2">                                                <span class="dt">knn=</span><span class="kw">floor</span>(<span class="kw">nrow</span>(feature_coassay)<span class="op">*</span><span class="fl">0.01</span>))</a></code></pre></div>
 <p>The SNN graph within batches are calculated based on ATAC-seq only. If RNA-seq data is available, we can calculate the SNN graph from RNA-seq and ATAC-seq by <code>cal.snn</code> instead to get better results.</p>
