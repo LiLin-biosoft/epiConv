@@ -18,6 +18,9 @@
 #' @return Return a data frame. The first two columns are coordinates of umap embeddings and other columns are results of clustering.
 
 run.umap_louvain<-function(Smat,knn=NULL,umap_settings=NULL,resolution=NULL){
+  retain<-which(!is.na(Smat[,1]))
+  ncell<-nrow(Smat)
+  Smat<-Smat[retain,retain]
   if(is.null(knn)){
     knn<-max(min(floor(nrow(Smat)*0.01),200),20)
   }
@@ -34,7 +37,7 @@ run.umap_louvain<-function(Smat,knn=NULL,umap_settings=NULL,resolution=NULL){
 
   diag(snn_mat)<-0
   temp<-apply(snn_mat,2,graph.norm,knn=knn)
-  temp<-temp+Matrix::t(temp)-temp*Matrix::t(temp)
+  temp<-temp+t(temp)-temp*t(temp)
   rownames(temp)<-as.character(1:nrow(Smat))
   colnames(temp)<-as.character(1:nrow(Smat))
 
@@ -46,5 +49,6 @@ run.umap_louvain<-function(Smat,knn=NULL,umap_settings=NULL,resolution=NULL){
   }
   output<-data.frame(umap_res,clust)
   colnames(output)<-c("umap_1","umap_2",paste0(resolution,resolution))
+  output<-output[match(1:ncell,retain),]
   return(output)
 }
