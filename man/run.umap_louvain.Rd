@@ -4,16 +4,27 @@
 \alias{run.umap_louvain}
 \title{perform umap and louvain clustering}
 \usage{
-run.umap_louvain(Smat, knn = NULL, umap_settings = NULL, resolution = NULL)
+run.umap_louvain(
+  Smat,
+  knn = NULL,
+  umap_settings = NULL,
+  method = "umap",
+  resolution = NULL,
+  ...
+)
 }
 \arguments{
 \item{Smat}{the similarity matrix.}
 
 \item{knn}{number of neighbors to calculate shared nearest neighbors matrix. If set to NULL, it will be total cells*0.01.}
 
-\item{umap_settings}{umap settings. If set to NULL, it will be defaults of umap.}
+\item{umap_settings}{umap settings passed to umap.}
+
+\item{method}{method can be umap or uwot that specifies the package used.}
 
 \item{resolution}{the resolution of louvain clustering. It can be numeric vectors. If set to NULL, the function does not perform clustering.}
+
+\item{...}{Arguments passed to big.matrix when creating the distance matrix.}
 }
 \value{
 Return a data frame. The first two columns are coordinates of umap embeddings and other columns are results of clustering.
@@ -25,7 +36,7 @@ perform umap and louvain clustering.
 \dontrun{
 res<-run.umap_louvain(Smat=Smat,
                      knn=NULL,
-                     umap_settings=NULL,
+                     knn_umap=20,
                      resolution=NULL)
 }
 

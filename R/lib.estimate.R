@@ -12,5 +12,6 @@
 #' @return Return a vector with number of accessible of cells
 
 lib.estimate<-function(mat){
-  mat@x[mat@x>1]<-1
-  return(Matrix::colSums(mat))}
+  lib<-mat@p[1:ncol(mat)+1]-mat@p[1:ncol(mat)]
+  return(lib)
+}

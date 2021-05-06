@@ -4,14 +4,7 @@
 \alias{run.epiConv}
 \title{Calculate similarities between cells}
 \usage{
-run.epiConv(
-  mat,
-  lib_size,
-  nbootstrap = 15,
-  nsample = floor(nrow(mat) * 0.2),
-  bin = 10000,
-  inf_replace = (-8)
-)
+run.epiConv(mat, lib_size, nbootstrap, nsample, bin = 5000, inf = (-8), ...)
 }
 \arguments{
 \item{mat}{Matrix object constains the peak by cell matrix.}
@@ -24,7 +17,9 @@ run.epiConv(
 
 \item{bin}{Matrix are divided by bin to avoid very long vectors, It does not affect the results.}
 
-\item{inf_replace}{a small value used to replace -Inf.}
+\item{inf}{a small value used to replace -Inf.}
+
+\item{...}{Arguments passed to big.matrix when creating the similarity matrix. You can specify a backup file through "backingfile" and "descriptorfile". If not specified, the function will create a in-memory backup file.}
 }
 \value{
 Return a similarity matrix.
@@ -39,7 +34,9 @@ Smat<-run.epiConv(mat=mat,
                   nbootstrap=15,
                   nsample=floor(nrow(mat)*0.2),
                   bin=5000,
-                  inf_replace=(-8))
+                  inf=(-8),
+                  backingfile="backupfile",
+                  descriptorfile="backupfile.descriptor")
 }
 
 }

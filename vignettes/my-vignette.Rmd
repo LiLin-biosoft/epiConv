@@ -48,53 +48,40 @@ Smat<-run.epiConv(mat=assays(sce)$counts,
                   nbootstrap=15,
                   nsample=floor(nrow(sce)*0.2),
                   bin=5000,
-                  inf_replace=(-8))
+                  inf=(-8),
+                  backingfile="bmmc.backup",
+                  descriptorfile="bmmc.backup.descriptor")
 ```
-We calculate the similarity matrix of cells by `run.epiConv`.
+We calculate the similarity matrix of cells by `run.epiConv`. The similarity matrix is file-backed. `Smat` is a pointor to the file. A pointor can also be created from existing file `Smat<-attach.big.matrix("bmmc.backup.descriptor")`.
 
 ```{r eval=FALSE}
 reducedDims(sce)$umap<-run.umap_louvain(Smat=Smat,
                                         knn=50,
-                                        umap_settings=umap::umap.defaults,
                                         resolution=NULL)
 ```
 We perform dimension reduction by `run.umap_louvain`.
-```{r eval=FALSE}
-Smat<-Smat-median(Smat)
-eigs<-dim.reduce(Smat,neigs=30)
-residual_mat<-Smat-tcrossprod(eigs$vectors,t(t(eigs$vectors)*eigs$values))
-```
-We perform Eigenvalue Decompostion on similarity matrix by `dim.reduce`.
+
 ```{r eval=FALSE}
 batch<-factor(sce$ident)
-guide_features<-sapply(levels(batch),function(x){
-  index<-which(batch==x)
-  eigs$vectors[index,]
-})
-knn_update<-eigs.knn(Smat=Smat,
-                     features=guide_features,
-                     batch=batch,
-                     reference="Resting",
-                     knn_target=50,
-                     knn_reference=10,
-                     threshold=2)
+Smat_corrected<-deepcopy(Smat,
+                         backingfile="bmmc2.backup",
+                         descriptorfile="bmmc2.backup.descriptor")
+res_joint<-epiConv.joint(Smat=Smat_corrected,
+                         batch=batch,
+                         reference="Resting",
+                         neigs=30,
+                         features=NULL,
+                         knn_mat=NULL,
+                         knn_target=50,
+                         knn_reference=10,
+                         threshold=2)
+
 ```
-We create the knn graph bewteen batches and SNN graph within batches to find recurrent cell populations across batches by `eigs.knn`.
+We perform batch correction using `epiConv.joint`. The corrected matrix is stored in another file-backed file `Smat_corrected`. `res_joint` contains the Eigen vectors before correction, after correction and the knn matrix.
 
 ```{r eval=FALSE}
-eigs_corrected<-eigs.correct(eigs=eigs$vectors,
-                             knn_mat=knn_update,
-                             batch=batch,
-                             reference="Resting",
-                             knn_transfer_correction=10)
-```
-We scale the Eigen vectors to remove batch effects by `eigs.correct`.
-
-```{r eval=FALSE}
-Smat_corrected<-tcrossprod(eigs_corrected,t(t(eigs_corrected)*eigs$values))+residual_mat
 temp<-run.umap_louvain(Smat=Smat_corrected,
                        knn=50,
-                       umap_settings=umap::umap.defaults,
                        resolution=0.8)
 reducedDims(sce)$umap_corrected<-as.matrix(temp[,1:2])
 colData(sce)<-cbind(colData(sce),cluster=factor(temp[,3]))
@@ -103,7 +90,7 @@ plot(reducedDims(sce)$umap,pch="+",cex=0.5,col=factor(sce$ident))
 plot(reducedDims(sce)$umap_corrected,pch="+",cex=0.5,col=factor(sce$ident))
 plot(reducedDims(sce)$umap_corrected,pch="+",cex=0.5,col=rainbow(nlevels(sce$cluster))[sce$cluster])
 ```
-We calculate the similarity matrix from corrected Eigen vectors and then perfrom dimension reduction and clustering.<br>
+We perfrom dimension reduction and clustering on corrected similarity matrix.<br>
 
 ### Integrate multi-omics data with scATAC-seq data
 
@@ -119,13 +106,18 @@ Smat<-run.epiConv(mat=assays(sce)$counts[,index_coassay],
                   nbootstrap=15,
                   nsample=floor(nrow(sce)*0.2),
                   bin=5000,
-                  inf_replace=(-8))
+                  inf=(-8))
 
 feature_coassay<-cal.feature(Smat=Smat,
                              pcs=reducedDims(sce)$PCA_RNA[index_coassay,],
                              neigs=50)
+knn_mat<-list()
+knn_mat[["co-assay"]]<-find.knn(as.matrix(dist(feature_coassay))*(-1),
+                       knn=floor(nrow(feature_coassay)*0.01))
+guide_features<-list()
+guide_features[["co-assay"]]<-reducedDims(sce)$PCA_RNA[index_coassay,]
 ```
-First, we need to combine RNA-seq and ATAC-seq data to resolve the relationships of single cells in co-assay data. We combined 50 principal components (PCs) from RNA-seq `reducedDims(sce)$PCA_RNA`(calculated from RNA-seq) and 50 Eigen vectors from ATAC-seq by `cal.feature`. `feature_coassay` contains 100 features in total and will be used in following steps.
+First, we combined 50 principal components (PCs) from RNA-seq `reducedDims(sce)$PCA_RNA`(calculated from RNA-seq) and 50 Eigen vectors from ATAC-seq by `cal.feature` to create `knn_mat` that contains the knn matrix of co-assay data. We also create `guide-features` that contains the PCs of RNA-seq. `knn_mat` and `guide_features` will be used in batch correction.
 
 ```{r eval=FALSE}
 Smat<-run.epiConv(mat=assays(sce)$counts,
@@ -133,57 +125,32 @@ Smat<-run.epiConv(mat=assays(sce)$counts,
                   nbootstrap=15,
                   nsample=floor(nrow(sce)*0.2),
                   bin=10000,
-                  inf_replace=(-8))
+                  inf=(-8),
+                  backingfile="brain.backup",
+                  descriptorfile="brain.backup.descriptor")
 reducedDims(sce)$umap<-run.umap_louvain(Smat=Smat,
-                                        knn=NULL,
-                                        umap_settings=NULL,
+                                        knn=20,
                                         resolution=NULL)
-Smat<-Smat-median(Smat)
-eigs<-dim.reduce(Smat,neigs=30)
-residual_mat<-Smat-tcrossprod(eigs$vectors,t(t(eigs$vectors)*eigs$values))
-
+Smat_corrected<-deepcopy(Smat,
+                         backingfile="brain2.backup",
+                         descriptorfile="brain2.backup.descriptor")
 batch<-factor(colData(sce)$ident)
-guide_features<-sapply(levels(batch),function(x){
-  index<-which(batch==x)
-  eigs$vectors[index,]
-})
+res_joint<-epiConv.joint(Smat=Smat_corrected,
+                         batch=batch,
+                         reference="ATAC",
+                         neigs=30,
+                         features=guide_features,
+                         knn_mat=knn_mat,
+                         knn_target=50,
+                         knn_reference=10,
+                         threshold=2)
 ```
-We calculate the similarity matrix on combined data and perfrom Eigenvalue Decomposition.
+We calculate the similarity matrix on combined data and perfrom batch correction.
+There are some cells with NA because they cannot be properly corrected in this small dataset. Generally there will be few cells with NA in larger datasets.
 
 ```{r eval=FALSE}
-guide_features[["co-assay"]]<-cbind(guide_features[["co-assay"]],
-                                    reducedDims(sce)$PCA_RNA[index_coassay,])
-```
-We add Principal Components (PCs) from RNA-seq to guide features. PCs from RNA-seq improve the results of knn matrix when the sequencing depth of ATAC-seq is shallow.
-
-```{r eval=FALSE}
-knn_update<-eigs.knn(Smat=Smat,
-                     features=guide_features,
-                     batch=batch,
-                     reference="ATAC",
-                     knn_target=50,
-                     knn_reference=10,
-                     threshold=2)
-```
-We create the knn graph.
-```{r eval=FALSE}
-knn_update[["co-assay"]][["co-assay"]]<-cal.snn(Smat=as.matrix(dist(feature_coassay))*(-1),
-                                                knn=floor(nrow(feature_coassay)*0.01))
-```
-The SNN graph within batches are calculated based on ATAC-seq only. If RNA-seq data is available, we can calculate the SNN graph from RNA-seq and ATAC-seq by `cal.snn` instead to get better results.
-
-```{r eval=FALSE}
-eigs_corrected<-eigs.correct(eigs=eigs$vectors,
-                             knn_mat=knn_update,
-                             batch=batch,
-                             reference="ATAC",
-                             knn_transfer_correction=10)
-
-Smat_corrected<-tcrossprod(eigs_corrected,t(t(eigs_corrected)*eigs$values))+residual_mat
-
 temp<-run.umap_louvain(Smat=Smat_corrected,
-                       knn=NULL,
-                       umap_settings=NULL,
+                       knn=20,
                        resolution=c(0.4,0.8)) ##Here we try resolution=0.4 and 0.8.
 reducedDims(sce)$umap_corrected<-as.matrix(temp[,1:2])
 colData(sce)<-cbind(colData(sce),cluster=factor(temp[,3]))

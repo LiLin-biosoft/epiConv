@@ -1,65 +1,3 @@
-big.crossprod<-function(mat1,mat2,bin=50000){
-  if(ncol(mat1)<bin&ncol(mat2)<bin){
-    output<-Matrix::crossprod(mat1,mat2)
-  }else{
-    output<-big.matrix(nrow=ncol(mat1),ncol=ncol(mat2),init=0)
-    for(i in 1:ceiling(ncol(mat1)/bin)-1){
-      row_index<-(i*bin+1):min((i*bin+bin),ncol(mat1))
-      for(j in 1:ceiling(ncol(mat2)/bin)-1){
-        col_index<-(j*bin+1):min((j*bin+bin),ncol(mat2))
-        output[row_index,col_index]<-as.matrix(Matrix::crossprod(mat1[,row_index],mat2[,col_index]))
-      }
-    }
-  }
-  output<-bigmemory::as.matrix(output)
-  rownames(output)<-colnames(mat1)
-  colnames(output)<-colnames(mat2)
-  return(output)
-}
-
-symm.crossprod<-function(mat,bin=50000,ncore=1){
-  if(ncol(mat)<=bin){
-    output<-Matrix::crossprod(mat)
-  }else{
-    output<-big.matrix(nrow=ncol(mat),ncol=ncol(mat),init=0)
-    for(i in 1:ceiling(ncol(mat)/bin)-1){
-      row_index<-(i*bin+1):min((i*bin+bin),ncol(mat))
-      for(j in (i+1):ceiling(ncol(mat)/bin)-1){
-        col_index<-(j*bin+1):min((j*bin+bin),ncol(mat))
-        temp<-as.matrix(Matrix::crossprod(mat[,row_index],mat[,col_index]))
-        output[row_index,col_index]<-temp
-        if(i!=j){
-          output[col_index,row_index]<-Matrix::t(temp)
-        }
-      }
-    }
-  }
-  output<-bigmemory::as.matrix(output)
-  rownames(output)<-colnames(mat)
-  colnames(output)<-colnames(mat)
-  return(output)
-}
-
-
-big.tcrossprod<-function(mat1,mat2,bin=50000){
-  if(nrow(mat1)<bin&nrow(mat2)<bin){
-    output<-Matrix::tcrossprod(mat1,mat2)
-  }else{
-    output<-big.matrix(nrow=nrow(mat1),ncol=nrow(mat2),init=0)
-    for(i in 1:ceiling(nrow(mat1)/bin)-1){
-      row_index<-(i*bin+1):min((i*bin+bin),nrow(mat1))
-      for(j in 1:ceiling(nrow(mat2)/bin)-1){
-        col_index<-(j*bin+1):min((j*bin+bin),nrow(mat2))
-        output[row_index,col_index]<-as.matrix(Matrix::tcrossprod(mat1[row_index,],mat2[col_index,]))
-      }
-    }
-  }
-  output<-bigmemory::as.matrix(output)
-  rownames(output)<-rownames(mat1)
-  colnames(output)<-rownames(mat2)
-  return(output)
-}
-
 tfidf.norm<-function(mat,lib_size){
   mat@x[mat@x>0]<-1
   freq<-Matrix::rowSums(mat)/ncol(mat)
@@ -67,24 +5,6 @@ tfidf.norm<-function(mat,lib_size){
   wt[freq==0]<-0
   mat<-Matrix::t(Matrix::t(mat)/lib_size)*wt
   return(mat)
-}
-
-inf.estimate<-function(mat,sample_size=0.2,nsim=15){
-  sample_size<-floor(nrow(mat)*sample_size)
-  sample_matrix<-lapply(1:nsim,function(x) sample(1:nrow(mat),size=sample_size))
-  conv<-sapply(sample_matrix,function(x){
-    temp<-as.matrix(Matrix::crossprod(mat[x,]))
-    return(log10(min(temp[temp!=0])))
-  })
-  return(min(conv))
-}
-
-continuous.match<-function(x,win){
-  output<-rep(1,length(x))
-  for(i in 1:length(win)){
-    output[x>=win[i]]<-output[x>=win[i]]+1
-  }
-  return(output)
 }
 
 num2int<-function(x,nbin=32,bound=quantile(x,c(0.05,0.95))){
@@ -107,102 +27,155 @@ stablization.pars<-function(Smat,lib_size){
   return(list(coef=lm_res$coefficients,lib_window=lib_window,sd_value=sd_value))
 }
 
-similarity.stablization.small<-function(Smat,lib_size1,lib_size2,stablization_pars){
-  lib_mat<-matrix(0,nrow(Smat),ncol(Smat))
-  lib_mat<-lib_mat+log10(lib_size1)
-  lib_mat<-Matrix::t(Matrix::t(lib_mat)+log10(lib_size2))
-  lib_mat_discrete<-continuous.match(lib_mat,stablization_pars$lib_window)
-  output<-(as.vector(Smat)-as.vector(lib_mat)*stablization_pars$coef[2]-stablization_pars$coef[1])
-  output<-output/stablization_pars$sd_value[lib_mat_discrete]
-  output<-matrix(output,nrow(Smat),ncol(Smat))
-  return(output)
+#################################
+continuous.match<-function(x,win){
+  nbin<-length(win)+1
+  bin<-win[2]-win[1]
+  x<-floor((x-win[1])/bin)+2
+  x[x>nbin]<-nbin
+  x[x<1]<-1
+  return(x)
+}
+lib2sd<-function(lib,adjust_pars){
+  win<-adjust_pars$lib_window
+  nbin<-length(win)+1
+  bin<-win[2]-win[1]
+  lib<-floor((lib-win[1])/bin)+2
+  lib[lib>nbin]<-nbin
+  lib[lib<1]<-1
+  lib<-adjust_pars$sd_value[lib]
+  return(lib)
+}
+epiConv.matrix<-function(mat1,mat2,sample_matrix,inf,lib_size1,lib_size2,adjust_pars=NULL){
+  Smat<-matrix(0,ncol(mat1),ncol(mat2))
+  nbootstrap<-length(sample_matrix)
+  for(k in sample_matrix){
+    temp<-log10(Matrix::crossprod(mat1[k,],mat2[k,]))
+    temp@x[is.infinite(temp@x)]<-inf
+    Smat<-Smat+as.matrix(temp)/nbootstrap
+    rm(temp)
+  }
+  if(is.null(adjust_pars)){
+    return(Smat)
+  }else{
+    ncell1<-length(lib_size1)
+    ncell2<-length(lib_size2)
+    Smat<-Smat-log10(lib_size1)*adjust_pars$coef[2]-adjust_pars$coef[1]
+    Smat<-Smat-t(matrix(log10(lib_size2),ncell2,ncell1))*adjust_pars$coef[2]
+    sd_mat<-matrix(log10(lib_size1),ncell1,ncell2)+
+      t(matrix(log10(lib_size2),ncell2,ncell1))
+    sd_mat<-apply(sd_mat,2,lib2sd,adjust_pars=adjust_pars)
+    Smat<-Smat/sd_mat
+    rm(sd_mat)
+    return(Smat)
+  }
 }
 
 
-similarity.stablization<-function(Smat,lib_size,stablization_pars,bin=5000){
-  if(nrow(Smat)<=bin){
-    output<-similarity.stablization.small(Smat,
-                                          lib_size1=lib_size,
-                                          lib_size2=lib_size,
-                                          stablization_pars=stablization_pars)
-  }else{
-    output<-big.matrix(nrow=nrow(Smat),ncol=ncol(Smat),init=0)
-    for(i in 1:ceiling(nrow(Smat)/bin)-1){
-      row_index<-(i*bin+1):min((i*bin+bin),nrow(Smat))
-      for(j in (i+1):ceiling(nrow(Smat)/bin)-1){
-        col_index<-(j*bin+1):min((j*bin+bin),nrow(Smat))
-        Smat_small<-Smat[row_index,col_index]
-        temp<-similarity.stablization.small(Smat[row_index,col_index],
-                                            lib_size1=lib_size[row_index],
-                                            lib_size2=lib_size[col_index],
-                                            stablization_pars=stablization_pars)
-        if(i==j){
-          output[row_index,col_index]<-temp
-        }else{
-          output[row_index,col_index]<-temp
-          output[col_index,row_index]<-Matrix::t(temp)
-        }
-      }
+refine.knn<-function(Smat,target_index,reference_index,knn_target,knn_reference,features,threshold=1.5){
+
+  nfeature<-ncol(features)
+  reference_range<-matrix(numeric(),2*nfeature,length(reference_index))
+  target_MM<-new("dgCMatrix")
+  target_MM@Dim<-c(length(reference_index),length(target_index))
+  target_MM@p<-as.integer(0)
+  nelement<-as.integer(0)
+  for(i in 1:length(target_index)){
+    edge<-sort(order(Smat[reference_index,target_index[i]],decreasing=T)[1:knn_target])
+    nodata<-edge[is.na(reference_range[1,edge])]
+    for(j in nodata){
+      neighbor_index<-order(Smat[target_index,reference_index[j]],decreasing=T)[1:knn_reference]
+      temp<-features[neighbor_index,]
+      mu<-colMeans(temp)
+      sdev<-apply(temp,2,sd)
+      reference_range[,j]<-c(mu-sdev*threshold,mu+sdev*threshold)
     }
-    output<-bigmemory::as.matrix(output)
+
+    temp<-reference_range[,edge]
+    temp<-colSums(features[i,]>temp[1:nfeature,]&
+                    features[i,]<temp[(nfeature+1):(nfeature*2),])
+    edge<-edge[temp==nfeature]
+    target_MM@i<-c(target_MM@i,as.integer(edge-1))
+    nelement<-nelement+length(edge)
+    target_MM@p<-c(target_MM@p,nelement)
+    target_MM@x<-c(target_MM@x,rep(1,length(edge)))
+  }
+  return(target_MM)
+
+}
+
+eigs.knn<-function(Smat,features,batch,reference,knn_target=50,knn_reference=20,threshold=2){
+  align_order<-c(reference,setdiff(levels(batch),reference))
+  output<-list()
+  for(i in 2:length(align_order)){
+    tag1<-align_order[i]
+    output[[tag1]]<-list()
+    index1<-which(batch==tag1)
+
+    for(tag2 in setdiff(reference,align_order[i:length(align_order)])){
+      index2<-which(batch==tag2)
+      cat("calculating knn matrix:",tag1,"to",tag2,fill=T)
+      output[[tag1]][[tag2]]<-refine.knn(Smat=Smat,
+                                         target_index=index1,
+                                         reference_index=index2,
+                                         knn_target=knn_target,
+                                         knn_reference=knn_reference,
+                                         features=features[[tag1]],
+                                         threshold=threshold)
+    }
   }
   return(output)
 }
 
-find.knn<-function(Smat,knn,binarize=T){
-  apply(Smat,2,function(x,knn){
-    output<-rep(0,length(x))
-    cutoff<-sort(x,decreasing=T)[knn]
-    if(binarize){
-      output[x>=cutoff]<-1
-    }else{
-      output[x>=cutoff]<-x[x>=cutoff]
+eigs.scale<-function(eigs,knn_mat,batch,reference,knn_transfer_correction=10,anchor_threshold=5){
+  align_order<-c(reference,setdiff(levels(batch),reference))
+  for(i in 2:length(align_order)){
+    tag1<-align_order[i]
+    index_self<-which(batch==tag1)
+    index_other<-which(batch%in%intersect(reference,align_order[1:(i-1)]))
+    index_other<-sapply(intersect(reference,align_order[1:(i-1)]),function(x){
+      which(batch==x)
+    })
+    index_other<-unlist(index_other)
+
+    anchor_mat<-NULL
+    for(tag2 in intersect(reference,align_order[1:(i-1)])){
+      anchor_mat<-rbind(anchor_mat,knn_mat[[tag1]][[tag2]])
     }
-    return(output)
-  },knn=knn)
-}
+    {
+      temp<-which(!is.na(eigs[index_other,1]))
+      anchor_mat<-anchor_mat[temp,]
+      index_other<-index_other[temp]
 
-reference.range<-function(features,reference,threshold=1.5){
-  output<-apply(reference,2,function(x){
-    mu<-mean(features[x!=0])
-    sdev<-sd(features[x!=0])
-    return(c(mu-threshold*sdev,mu+threshold*sdev))
-    # return(quantile(features[x!=0],probs=c(threshold,1-threshold),na.rm=T))
-  })
-  return(c(output[1,],output[2,]))
-} ##accept one feature and knn matrix, return c(lower bound vector, upper bound vector)
-
-neighbor_vector.update<-function(neighbor_vector,features,ref_range){
-  index<-which(neighbor_vector!=0)
-  ref_range<-ref_range[c(index,index+length(neighbor_vector)),]
-  temp<-sapply(1:length(features),function(i){
-    rng<-matrix(ref_range[,i],,2)
-    if(is.na(features[i])){
-      return(rep(1,nrow(rng)))
-    }else{
-      return(as.numeric(features[i]>rng[,1]&features[i]<rng[,2]))
+      valid_anchor<-which(Matrix::colSums(anchor_mat)>=anchor_threshold)
+      correction<-apply(anchor_mat[,valid_anchor],2,function(x){
+        colMeans(eigs[index_other[x==1],])
+      })
+      correction<-t(correction)-eigs[index_self[valid_anchor],]
     }
-  })
-  neighbor_vector[index[rowSums(temp)!=ncol(temp)]]<-0
-  return(neighbor_vector)
-} ##accept one knn vector, multiple features of one object and range matrix, returns updated knn vector
 
-refine.knn<-function(target,reference,features,threshold=1.5){
-  reference_range<-apply(features,2,reference.range,reference=reference,threshold=threshold)
-  target_update<-sapply(1:ncol(target),function(x){
-    neighbor_vector.update(target[,x],features=features[x,],ref_range=reference_range)
-  })
-  return(target_update)
+    snn_mat<-Matrix::crossprod(knn_mat[[tag1]][[tag1]][,valid_anchor],
+                               knn_mat[[tag1]][[tag1]])
+    correction<-apply(snn_mat,2,function(x){
+      cutoff<-sort(x,decreasing=T)[knn_transfer_correction]
+      x[x<cutoff]<-0
+      (colSums(correction*x))/sum(x)
+    })
+    correction<-t(correction)
+
+    eigs[index_self,]<-eigs[index_self,]+correction
+  }
+  return(eigs)
 }
 
 graph.norm<-function(x,knn){
-  cutoff<-sort(x,decreasing=T)[knn]
-  x[x<cutoff]<-0
-  y<-x[x!=0]
+  idx<-order(x,decreasing=T)[1:knn]
+  y<-x[idx]
   target_fun<-function(x,similarity,knn){
     sum(exp(x*similarity))-log2(knn)
   }
   root<-uniroot(target_fun,interval=c(0,1e10),similarity=y-max(y),knn=knn)$root
-  x[x!=0]<-exp(root*(y-max(y)))
+  x<-rep(0,length(x))
+  x[idx]<-exp(root*(y-max(y)))
   return(x)
 }
