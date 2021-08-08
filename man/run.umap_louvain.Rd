@@ -20,7 +20,7 @@ run.umap_louvain(
 
 \item{umap_settings}{umap settings passed to umap.}
 
-\item{method}{method can be umap or uwot that specifies the package used.}
+\item{method}{use umap or uwot package to calculated UMAP embedding.}
 
 \item{resolution}{the resolution of louvain clustering. It can be numeric vectors. If set to NULL, the function does not perform clustering.}
 

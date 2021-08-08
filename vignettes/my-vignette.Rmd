@@ -73,7 +73,7 @@ res_joint<-epiConv.joint(Smat=Smat_corrected,
                          features=NULL,
                          knn_mat=NULL,
                          knn_target=50,
-                         knn_reference=10,
+                         knn_reference=20,
                          threshold=2)
 
 ```
@@ -142,7 +142,7 @@ res_joint<-epiConv.joint(Smat=Smat_corrected,
                          features=guide_features,
                          knn_mat=knn_mat,
                          knn_target=50,
-                         knn_reference=10,
+                         knn_reference=20,
                          threshold=2)
 ```
 We calculate the similarity matrix on combined data and perfrom batch correction.

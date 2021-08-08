@@ -5,7 +5,7 @@
 #' @param Smat the similarity matrix.
 #' @param knn number of neighbors to calculate shared nearest neighbors matrix. If set to NULL, it will be total cells*0.01.
 #' @param umap_settings umap settings passed to umap.
-#' @param method method can be umap or uwot that specifies the package used.
+#' @param method use umap or uwot package to calculated UMAP embedding.
 #' @param resolution the resolution of louvain clustering. It can be numeric vectors. If set to NULL, the function does not perform clustering.
 #' @param ... Arguments passed to big.matrix when creating the distance matrix.
 #'
@@ -80,16 +80,24 @@ run.umap_louvain<-function(Smat,knn=NULL,umap_settings=NULL,method="umap",resolu
     rm(temp)
     gc()
   }else{
-    temp<-biganalytics::apply(dis,2,function(x){
-      aa<-order(x)[1:umap_settings$n_neighbors]
-      bb<-x[aa]
-      return(c(aa,bb))
-    })
+    dist_MM<-new("dgCMatrix")
+    dist_MM@Dim<-as.integer(dim(dis))
+    dist_MM@p<-as.integer(0)
+    nelement<-as.integer(0)
+    for(i in 1:nvalid){
+      temp<-dis[,i]
+      temp[i]<-min(temp)
+      index<-sort(order(temp,decreasing=F)[1:umap_settings$n_neighbors])
+      dist_MM@i<-c(dist_MM@i,as.integer(index-1))
+      nelement<-nelement+length(index)
+      dist_MM@p<-c(dist_MM@p,nelement)
+      dist_MM@x<-c(dist_MM@x,temp[index])
+
+    }
+
+
     rm(dis)
-    temp<-list(idx=t(temp[1:umap_settings$n_neighbors,]),
-               dist=t(temp[(umap_settings$n_neighbors+1):(2*umap_settings$n_neighbors),]))
-    umap_res<-uwot::umap(X=NULL,nn_method=temp)
-    rm(temp)
+    umap_res<-uwot::umap(X=dist_MM,n_neighbors=umap_settings$n_neighbors)
     gc()
   }
 

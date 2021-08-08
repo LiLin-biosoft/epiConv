@@ -1,3 +1,30 @@
+find.knn2<-function(mat,knn){
+  output<-new("dgCMatrix")
+  output@Dim<-as.integer(dim(mat))
+  output@p<-as.integer(0)
+  nelement<-as.integer(0)
+  for(k in 1:ncol(mat)){
+    temp<-mat@i[(mat@p[k]+1):mat@p[k+1]]+1
+    temp<-Matrix::colSums(mat[temp,])
+    cutoff<-sort(temp,decreasing=T)[knn]
+    index<-which(temp>=cutoff)
+    output@i<-c(output@i,as.integer(index-1))
+    nelement<-nelement+length(index)
+    output@p<-c(output@p,nelement)
+    output@x<-c(output@x,rep(1,length(index)))
+  }
+  return(output)
+}
+
+dim.reduce<-function(Smat,neigs){
+  eigs1<-PRIMME::eigs_sym(Smat,NEig=neigs,which="LA")
+  eigs2<-PRIMME::eigs_sym(Smat,NEig=neigs,which="SA")
+  values<-c(eigs1$values,eigs2$values)
+  vectors<-cbind(eigs1$vectors,eigs2$vectors)
+  odr<-order(abs(values),decreasing=T)[1:neigs]
+  return(list(vectors=vectors[,odr],values=values[odr]))
+}
+
 tfidf.norm<-function(mat,lib_size){
   mat@x[mat@x>0]<-1
   freq<-Matrix::rowSums(mat)/ncol(mat)
@@ -72,11 +99,17 @@ epiConv.matrix<-function(mat1,mat2,sample_matrix,inf,lib_size1,lib_size2,adjust_
 }
 
 
-refine.knn<-function(Smat,target_index,reference_index,knn_target,knn_reference,features,threshold=1.5){
+refine.knn<-function(Smat,ref_knn,target_index,reference_index,knn_target,knn_reference,features,threshold=1.5){
 
+  unsmoothed<-find.knn(Smat[target_index,reference_index],knn=knn_reference)
+  smoothed<-Matrix::crossprod(Matrix::t(unsmoothed),ref_knn)
+
+  ######calculate target matrix#########
   nfeature<-ncol(features)
   reference_range<-matrix(numeric(),2*nfeature,length(reference_index))
+  #  target<-deepcopy(Smat,cols=target_index,rows=reference_index)
   target_MM<-new("dgCMatrix")
+  #  target_MM@Dim<-as.integer(dim(target))
   target_MM@Dim<-c(length(reference_index),length(target_index))
   target_MM@p<-as.integer(0)
   nelement<-as.integer(0)
@@ -84,7 +117,7 @@ refine.knn<-function(Smat,target_index,reference_index,knn_target,knn_reference,
     edge<-sort(order(Smat[reference_index,target_index[i]],decreasing=T)[1:knn_target])
     nodata<-edge[is.na(reference_range[1,edge])]
     for(j in nodata){
-      neighbor_index<-order(Smat[target_index,reference_index[j]],decreasing=T)[1:knn_reference]
+      neighbor_index<-order(smoothed[,j]+Smat[target_index,reference_index[j]]/100,decreasing=T)[1:knn_reference]
       temp<-features[neighbor_index,]
       mu<-colMeans(temp)
       sdev<-apply(temp,2,sd)
@@ -101,11 +134,12 @@ refine.knn<-function(Smat,target_index,reference_index,knn_target,knn_reference,
     target_MM@x<-c(target_MM@x,rep(1,length(edge)))
   }
   return(target_MM)
-
+  ######calculate target matrix#########
 }
 
 eigs.knn<-function(Smat,features,batch,reference,knn_target=50,knn_reference=20,threshold=2){
   align_order<-c(reference,setdiff(levels(batch),reference))
+  ref_knn<-list()
   output<-list()
   for(i in 2:length(align_order)){
     tag1<-align_order[i]
@@ -114,8 +148,13 @@ eigs.knn<-function(Smat,features,batch,reference,knn_target=50,knn_reference=20,
 
     for(tag2 in setdiff(reference,align_order[i:length(align_order)])){
       index2<-which(batch==tag2)
+      if(is.null(ref_knn[[tag2]])){
+        temp<-find.knn(Smat[index2,index2],knn=floor(length(index2)/100))
+        ref_knn[[tag2]]<-find.knn2(temp,knn=knn_reference)
+      }
       cat("calculating knn matrix:",tag1,"to",tag2,fill=T)
       output[[tag1]][[tag2]]<-refine.knn(Smat=Smat,
+                                         ref_knn=ref_knn[[tag2]],
                                          target_index=index1,
                                          reference_index=index2,
                                          knn_target=knn_target,

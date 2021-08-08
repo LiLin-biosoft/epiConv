@@ -58,15 +58,25 @@ epiConv.joint<-function(Smat,batch,reference,neigs=30,features=list(),knn_mat=li
   for(x in setdiff(levels(batch),reference[1])){
     if(is.null(features[[x]])){
       index<-which(batch==x)
-      guide_features[[x]]<-eigs$vectors[index,1:neigs]
+      guide_features[[x]]<-dim.reduce(Smat[index,index],neigs=neigs)$vectors
     }else{
       index<-which(batch==x)
-      guide_features[[x]]<-cbind(eigs$vectors[index,1:neigs],
+      guide_features[[x]]<-cbind(dim.reduce(Smat[index,index],neigs=neigs)$vectors,
                                  features[[x]])
     }
 
   }
-
+  #  guide_features<-sapply(setdiff(levels(batch),reference[1]),function(x){
+  #    index<-which(batch==x)
+  #    eigs$vectors[index,1:neigs]
+  #  })
+  #  names(guide_features)<-setdiff(levels(batch),reference[1])
+  #  if(!is.null(features)){
+  #    for(i in names(features)){
+  #      guide_features[[i]]<-cbind(guide_features[[i]],
+  #      				features[[i]])
+  #    }
+  #  }
   knn_update<-eigs.knn(Smat=Smat,
                        features=guide_features,
                        batch=batch,

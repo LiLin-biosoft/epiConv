@@ -49,7 +49,7 @@ options(warn=-1)
 #                           features=NULL,
 #                           knn_mat=NULL,
 #                           knn_target=50,
-#                           knn_reference=10,
+#                           knn_reference=20,
 #                           threshold=2)
 #  
 
@@ -109,7 +109,7 @@ options(warn=-1)
 #                           features=guide_features,
 #                           knn_mat=knn_mat,
 #                           knn_target=50,
-#                           knn_reference=10,
+#                           knn_reference=20,
 #                           threshold=2)
 
 ## ----eval=FALSE---------------------------------------------------------------
