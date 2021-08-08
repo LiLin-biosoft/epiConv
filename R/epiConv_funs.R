@@ -198,6 +198,8 @@ eigs.scale<-function(eigs,knn_mat,batch,reference,knn_transfer_correction=10,anc
     correction<-apply(snn_mat,2,function(x){
       cutoff<-sort(x,decreasing=T)[knn_transfer_correction]
       x[x<cutoff]<-0
+      if(sum(x!=0)==0)
+        x<-rep(1,length(x))
       (colSums(correction*x))/sum(x)
     })
     correction<-t(correction)
