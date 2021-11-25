@@ -12,7 +12,7 @@
 
 <meta name="author" content="Li Lin" />
 
-<meta name="date" content="2021-08-08" />
+<meta name="date" content="2021-10-30" />
 
 <title>epiConv Package</title>
 
@@ -311,14 +311,12 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">epiConv Package</h1>
 <h4 class="author">Li Lin</h4>
-<h4 class="date">2021-08-08</h4>
+<h4 class="date">2021-10-30</h4>
 
 
 
-<p>EpiConv is an algorithm of clustering scATAC-seq data and correcting batch effects.<br> To run the scripts below, package <code>SingleCellExperiment</code> is required to store the data. It can be installed through Bioconductor.</p>
-<div id="integrate-scatac-seq-data" class="section level3">
-<h3>Integrate scATAC-seq data</h3>
-<p>We will show the usage of epiConv on LPS-stimulated human bone marrow mononuclear cells (BMMCs, data from <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE123580">GSE123580</a>). The data contains resting and LPS-stimulated BMMCs.</p>
+<p>EpiConv is an algorithm to correct batch effects and perform clustering for scATAC-seq data.<br> To run the scripts below, R package <code>SingleCellExperiment</code> is also required. It can be installed through Bioconductor.</p>
+<p>We will integrate resting and LPS-stimulated human bone marrow mononuclear cells (BMMCs, data from <a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE123580">GSE123580</a>).</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">suppressMessages</span>(<span class="kw">library</span>(epiConv))</a>
 <a class="sourceLine" id="cb1-2" title="2"><span class="kw">suppressMessages</span>(<span class="kw">library</span>(SingleCellExperiment))</a>
 <a class="sourceLine" id="cb1-3" title="3"></a>
@@ -331,110 +329,59 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <a class="sourceLine" id="cb1-10" title="10">                     peak<span class="op">$</span>start,<span class="st">&quot;-&quot;</span>,</a>
 <a class="sourceLine" id="cb1-11" title="11">                     peak<span class="op">$</span>end,<span class="dt">sep=</span><span class="st">&quot;&quot;</span>)</a>
 <a class="sourceLine" id="cb1-12" title="12"><span class="kw">colnames</span>(mat)&lt;-cell_info[,<span class="dv">1</span>]</a>
-<a class="sourceLine" id="cb1-13" title="13">sce&lt;-<span class="kw">SingleCellExperiment</span>(<span class="dt">assays=</span><span class="kw">SimpleList</span>(<span class="dt">counts=</span>mat),</a>
+<a class="sourceLine" id="cb1-13" title="13">sce&lt;-<span class="kw">SingleCellExperiment</span>(<span class="dt">assays=</span><span class="kw">SimpleList</span>(<span class="dt">counts=</span><span class="kw">as</span>(mat,<span class="st">&quot;dgCMatrix&quot;</span>)),</a>
 <a class="sourceLine" id="cb1-14" title="14">                          <span class="dt">rowRanges=</span><span class="kw">GRanges</span>(peak),<span class="dt">colData=</span>cell_info)</a>
 <a class="sourceLine" id="cb1-15" title="15"><span class="kw">colData</span>(sce)<span class="op">$</span>lib_size&lt;-<span class="kw">lib.estimate</span>(<span class="kw">assays</span>(sce)<span class="op">$</span>counts)</a>
-<a class="sourceLine" id="cb1-16" title="16">sce&lt;-<span class="kw">subset</span>(sce,<span class="dt">select=</span><span class="kw">colData</span>(sce)<span class="op">$</span>lib_size<span class="op">&gt;</span><span class="dv">500</span>)</a>
-<a class="sourceLine" id="cb1-17" title="17">sce&lt;-<span class="kw">subset</span>(sce,<span class="dt">subset=</span><span class="kw">freq.estimate</span>(<span class="kw">assays</span>(sce)<span class="op">$</span>counts)<span class="op">&gt;</span><span class="dv">0</span>)</a></code></pre></div>
-<p>First we read the data and create a SingleCellExperiment object to store the data.<code>lib.estimate</code> and <code>freq.estimate</code> are two simple functions to calculate the library size of single cells and the frequency of peaks. We removed cells with library size &lt;= 500.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">Smat&lt;-<span class="kw">run.epiConv</span>(<span class="dt">mat=</span><span class="kw">assays</span>(sce)<span class="op">$</span>counts,</a>
-<a class="sourceLine" id="cb2-2" title="2">                  <span class="dt">lib_size=</span>sce<span class="op">$</span>lib_size,</a>
-<a class="sourceLine" id="cb2-3" title="3">                  <span class="dt">nbootstrap=</span><span class="dv">15</span>,</a>
-<a class="sourceLine" id="cb2-4" title="4">                  <span class="dt">nsample=</span><span class="kw">floor</span>(<span class="kw">nrow</span>(sce)<span class="op">*</span><span class="fl">0.2</span>),</a>
-<a class="sourceLine" id="cb2-5" title="5">                  <span class="dt">bin=</span><span class="dv">5000</span>,</a>
-<a class="sourceLine" id="cb2-6" title="6">                  <span class="dt">inf=</span>(<span class="op">-</span><span class="dv">8</span>),</a>
-<a class="sourceLine" id="cb2-7" title="7">                  <span class="dt">backingfile=</span><span class="st">&quot;bmmc.backup&quot;</span>,</a>
-<a class="sourceLine" id="cb2-8" title="8">                  <span class="dt">descriptorfile=</span><span class="st">&quot;bmmc.backup.descriptor&quot;</span>)</a></code></pre></div>
-<p>We calculate the similarity matrix of cells by <code>run.epiConv</code>. The similarity matrix is file-backed. <code>Smat</code> is a pointor to the file. A pointor can also be created from existing file <code>Smat&lt;-attach.big.matrix(&quot;bmmc.backup.descriptor&quot;)</code>.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">reducedDims</span>(sce)<span class="op">$</span>umap&lt;-<span class="kw">run.umap_louvain</span>(<span class="dt">Smat=</span>Smat,</a>
-<a class="sourceLine" id="cb3-2" title="2">                                        <span class="dt">knn=</span><span class="dv">50</span>,</a>
-<a class="sourceLine" id="cb3-3" title="3">                                        <span class="dt">resolution=</span><span class="ot">NULL</span>)</a></code></pre></div>
-<p>We perform dimension reduction by <code>run.umap_louvain</code>.</p>
+<a class="sourceLine" id="cb1-16" title="16">sce&lt;-<span class="kw">subset</span>(sce,<span class="dt">select=</span><span class="kw">colData</span>(sce)<span class="op">$</span>lib_size<span class="op">&gt;</span><span class="dv">500</span>)</a></code></pre></div>
+<p>First we read the data and create a SingleCellExperiment object.<code>lib.estimate</code> is a simple function to calculate the library size (number of accessible peaks) of single cells. We remove cells with library size &lt;= 500.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">row_sample&lt;-<span class="dv">1</span><span class="op">:</span><span class="kw">ncol</span>(sce)</a>
+<a class="sourceLine" id="cb2-2" title="2">Smat&lt;-<span class="kw">run.epiConv</span>(<span class="dt">mat=</span><span class="kw">assays</span>(sce)<span class="op">$</span>counts,</a>
+<a class="sourceLine" id="cb2-3" title="3">                  <span class="dt">row_sample=</span>row_sample,</a>
+<a class="sourceLine" id="cb2-4" title="4">                  <span class="dt">lib_size=</span>sce<span class="op">$</span>lib_size,</a>
+<a class="sourceLine" id="cb2-5" title="5">                  <span class="dt">nbootstrap=</span><span class="dv">3</span>,</a>
+<a class="sourceLine" id="cb2-6" title="6">                  <span class="dt">nsample=</span><span class="kw">floor</span>(<span class="kw">nrow</span>(sce)<span class="op">*</span><span class="fl">0.5</span>),</a>
+<a class="sourceLine" id="cb2-7" title="7">                  <span class="dt">bin=</span><span class="dv">1000</span>,</a>
+<a class="sourceLine" id="cb2-8" title="8">                  <span class="dt">inf=</span>(<span class="op">-</span><span class="dv">10</span>),</a>
+<a class="sourceLine" id="cb2-9" title="9">                  <span class="dt">backingfile=</span><span class="st">&quot;bmmc.backup&quot;</span>,</a>
+<a class="sourceLine" id="cb2-10" title="10">                  <span class="dt">descriptorfile=</span><span class="st">&quot;bmmc.backup.descriptor&quot;</span>)</a></code></pre></div>
+<p>We calculate the similarity matrix between cells by <code>run.epiConv</code> or the parallel version <code>run.epiConv.parallel</code>. The similarity matrix is file-backed. <code>Smat</code> is a pointor to the file. A pointor can also be created from existing file <code>Smat&lt;-attach.big.matrix(&quot;bmmc.backup.descriptor&quot;)</code>.<br> If the data is large, we can down-sample the data by specifying the indices of sampled cells through <code>row_sample</code>. The similarities will be calculated between sampled cells and all cells. In the example above, we do not perform down-sampling.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1">snn_mat&lt;-<span class="kw">Smat2snn</span>(Smat,<span class="dt">knn=</span><span class="dv">20</span>)</a>
+<a class="sourceLine" id="cb3-2" title="2">dis&lt;-snn_mat</a>
+<a class="sourceLine" id="cb3-3" title="3">dis<span class="op">@</span>x&lt;-<span class="kw">max</span>(dis<span class="op">@</span>x)<span class="op">-</span>dis<span class="op">@</span>x<span class="fl">+1e-9</span></a>
+<a class="sourceLine" id="cb3-4" title="4">umap_res&lt;-uwot<span class="op">::</span><span class="kw">umap</span>(<span class="dt">X=</span>dis,<span class="dt">n_neighbors=</span><span class="dv">20</span>)</a></code></pre></div>
+<p>We calculate the SNN matrix by <code>Smat2snn</code> and perform UMAP dimension reduction by <code>uwot::umap</code>.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1">batch&lt;-<span class="kw">factor</span>(sce<span class="op">$</span>ident)</a>
 <a class="sourceLine" id="cb4-2" title="2">Smat_corrected&lt;-<span class="kw">deepcopy</span>(Smat,</a>
 <a class="sourceLine" id="cb4-3" title="3">                         <span class="dt">backingfile=</span><span class="st">&quot;bmmc2.backup&quot;</span>,</a>
 <a class="sourceLine" id="cb4-4" title="4">                         <span class="dt">descriptorfile=</span><span class="st">&quot;bmmc2.backup.descriptor&quot;</span>)</a>
-<a class="sourceLine" id="cb4-5" title="5">res_joint&lt;-<span class="kw">epiConv.joint</span>(<span class="dt">Smat=</span>Smat_corrected,</a>
-<a class="sourceLine" id="cb4-6" title="6">                         <span class="dt">batch=</span>batch,</a>
-<a class="sourceLine" id="cb4-7" title="7">                         <span class="dt">reference=</span><span class="st">&quot;Resting&quot;</span>,</a>
-<a class="sourceLine" id="cb4-8" title="8">                         <span class="dt">neigs=</span><span class="dv">30</span>,</a>
-<a class="sourceLine" id="cb4-9" title="9">                         <span class="dt">features=</span><span class="ot">NULL</span>,</a>
-<a class="sourceLine" id="cb4-10" title="10">                         <span class="dt">knn_mat=</span><span class="ot">NULL</span>,</a>
-<a class="sourceLine" id="cb4-11" title="11">                         <span class="dt">knn_target=</span><span class="dv">50</span>,</a>
-<a class="sourceLine" id="cb4-12" title="12">                         <span class="dt">knn_reference=</span><span class="dv">20</span>,</a>
-<a class="sourceLine" id="cb4-13" title="13">                         <span class="dt">threshold=</span><span class="dv">2</span>)</a></code></pre></div>
-<p>We perform batch correction using <code>epiConv.joint</code>. The corrected matrix is stored in another file-backed file <code>Smat_corrected</code>. <code>res_joint</code> contains the Eigen vectors before correction, after correction and the knn matrix.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">temp&lt;-<span class="kw">run.umap_louvain</span>(<span class="dt">Smat=</span>Smat_corrected,</a>
-<a class="sourceLine" id="cb5-2" title="2">                       <span class="dt">knn=</span><span class="dv">50</span>,</a>
-<a class="sourceLine" id="cb5-3" title="3">                       <span class="dt">resolution=</span><span class="fl">0.8</span>)</a>
-<a class="sourceLine" id="cb5-4" title="4"><span class="kw">reducedDims</span>(sce)<span class="op">$</span>umap_corrected&lt;-<span class="kw">as.matrix</span>(temp[,<span class="dv">1</span><span class="op">:</span><span class="dv">2</span>])</a>
-<a class="sourceLine" id="cb5-5" title="5"><span class="kw">colData</span>(sce)&lt;-<span class="kw">cbind</span>(<span class="kw">colData</span>(sce),<span class="dt">cluster=</span><span class="kw">factor</span>(temp[,<span class="dv">3</span>]))</a>
-<a class="sourceLine" id="cb5-6" title="6"></a>
-<a class="sourceLine" id="cb5-7" title="7"><span class="kw">plot</span>(<span class="kw">reducedDims</span>(sce)<span class="op">$</span>umap,<span class="dt">pch=</span><span class="st">&quot;+&quot;</span>,<span class="dt">cex=</span><span class="fl">0.5</span>,<span class="dt">col=</span><span class="kw">factor</span>(sce<span class="op">$</span>ident))</a>
-<a class="sourceLine" id="cb5-8" title="8"><span class="kw">plot</span>(<span class="kw">reducedDims</span>(sce)<span class="op">$</span>umap_corrected,<span class="dt">pch=</span><span class="st">&quot;+&quot;</span>,<span class="dt">cex=</span><span class="fl">0.5</span>,<span class="dt">col=</span><span class="kw">factor</span>(sce<span class="op">$</span>ident))</a>
-<a class="sourceLine" id="cb5-9" title="9"><span class="kw">plot</span>(<span class="kw">reducedDims</span>(sce)<span class="op">$</span>umap_corrected,<span class="dt">pch=</span><span class="st">&quot;+&quot;</span>,<span class="dt">cex=</span><span class="fl">0.5</span>,<span class="dt">col=</span><span class="kw">rainbow</span>(<span class="kw">nlevels</span>(sce<span class="op">$</span>cluster))[sce<span class="op">$</span>cluster])</a></code></pre></div>
-<p>We perfrom dimension reduction and clustering on corrected similarity matrix.<br></p>
-</div>
-<div id="integrate-multi-omics-data-with-scatac-seq-data" class="section level3">
-<h3>Integrate multi-omics data with scATAC-seq data</h3>
-<p>If cells are with transcriptome profiles (co-assay data), we can use the transcriptome to improve the performance of batch correction. Next, we will integrate one co-assay data of postnatal day 0 mouse cortex (GSE126074) and one scATAC-seq data from <a href="https://support.10xgenomics.com/single-cell-atac/datasets">10x Genomics</a> to show the usage of epiConv. The data after basic quality control is stored in <code>sce.rds</code>.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">suppressMessages</span>(<span class="kw">library</span>(epiConv))</a>
-<a class="sourceLine" id="cb6-2" title="2"><span class="kw">suppressMessages</span>(<span class="kw">library</span>(SingleCellExperiment))</a>
-<a class="sourceLine" id="cb6-3" title="3"></a>
-<a class="sourceLine" id="cb6-4" title="4">sce&lt;-<span class="kw">readRDS</span>(<span class="dt">file=</span><span class="st">&quot;sce.rds&quot;</span>)</a>
-<a class="sourceLine" id="cb6-5" title="5">index_coassay&lt;-<span class="kw">which</span>(<span class="kw">colData</span>(sce)<span class="op">$</span>ident<span class="op">==</span><span class="st">&quot;co-assay&quot;</span>)</a>
-<a class="sourceLine" id="cb6-6" title="6">Smat&lt;-<span class="kw">run.epiConv</span>(<span class="dt">mat=</span><span class="kw">assays</span>(sce)<span class="op">$</span>counts[,index_coassay],</a>
-<a class="sourceLine" id="cb6-7" title="7">                  <span class="dt">lib_size=</span>sce<span class="op">$</span>lib_size[index_coassay],</a>
-<a class="sourceLine" id="cb6-8" title="8">                  <span class="dt">nbootstrap=</span><span class="dv">15</span>,</a>
-<a class="sourceLine" id="cb6-9" title="9">                  <span class="dt">nsample=</span><span class="kw">floor</span>(<span class="kw">nrow</span>(sce)<span class="op">*</span><span class="fl">0.2</span>),</a>
-<a class="sourceLine" id="cb6-10" title="10">                  <span class="dt">bin=</span><span class="dv">5000</span>,</a>
-<a class="sourceLine" id="cb6-11" title="11">                  <span class="dt">inf=</span>(<span class="op">-</span><span class="dv">8</span>))</a>
-<a class="sourceLine" id="cb6-12" title="12"></a>
-<a class="sourceLine" id="cb6-13" title="13">feature_coassay&lt;-<span class="kw">cal.feature</span>(<span class="dt">Smat=</span>Smat,</a>
-<a class="sourceLine" id="cb6-14" title="14">                             <span class="dt">pcs=</span><span class="kw">reducedDims</span>(sce)<span class="op">$</span>PCA_RNA[index_coassay,],</a>
-<a class="sourceLine" id="cb6-15" title="15">                             <span class="dt">neigs=</span><span class="dv">50</span>)</a>
-<a class="sourceLine" id="cb6-16" title="16">knn_mat&lt;-<span class="kw">list</span>()</a>
-<a class="sourceLine" id="cb6-17" title="17">knn_mat[[<span class="st">&quot;co-assay&quot;</span>]]&lt;-<span class="kw">find.knn</span>(<span class="kw">as.matrix</span>(<span class="kw">dist</span>(feature_coassay))<span class="op">*</span>(<span class="op">-</span><span class="dv">1</span>),</a>
-<a class="sourceLine" id="cb6-18" title="18">                       <span class="dt">knn=</span><span class="kw">floor</span>(<span class="kw">nrow</span>(feature_coassay)<span class="op">*</span><span class="fl">0.01</span>))</a>
-<a class="sourceLine" id="cb6-19" title="19">guide_features&lt;-<span class="kw">list</span>()</a>
-<a class="sourceLine" id="cb6-20" title="20">guide_features[[<span class="st">&quot;co-assay&quot;</span>]]&lt;-<span class="kw">reducedDims</span>(sce)<span class="op">$</span>PCA_RNA[index_coassay,]</a></code></pre></div>
-<p>First, we combined 50 principal components (PCs) from RNA-seq <code>reducedDims(sce)$PCA_RNA</code>(calculated from RNA-seq) and 50 Eigen vectors from ATAC-seq by <code>cal.feature</code> to create <code>knn_mat</code> that contains the knn matrix of co-assay data. We also create <code>guide-features</code> that contains the PCs of RNA-seq. <code>knn_mat</code> and <code>guide_features</code> will be used in batch correction.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">Smat&lt;-<span class="kw">run.epiConv</span>(<span class="dt">mat=</span><span class="kw">assays</span>(sce)<span class="op">$</span>counts,</a>
-<a class="sourceLine" id="cb7-2" title="2">                  <span class="dt">lib_size=</span>sce<span class="op">$</span>lib_size,</a>
-<a class="sourceLine" id="cb7-3" title="3">                  <span class="dt">nbootstrap=</span><span class="dv">15</span>,</a>
-<a class="sourceLine" id="cb7-4" title="4">                  <span class="dt">nsample=</span><span class="kw">floor</span>(<span class="kw">nrow</span>(sce)<span class="op">*</span><span class="fl">0.2</span>),</a>
-<a class="sourceLine" id="cb7-5" title="5">                  <span class="dt">bin=</span><span class="dv">10000</span>,</a>
-<a class="sourceLine" id="cb7-6" title="6">                  <span class="dt">inf=</span>(<span class="op">-</span><span class="dv">8</span>),</a>
-<a class="sourceLine" id="cb7-7" title="7">                  <span class="dt">backingfile=</span><span class="st">&quot;brain.backup&quot;</span>,</a>
-<a class="sourceLine" id="cb7-8" title="8">                  <span class="dt">descriptorfile=</span><span class="st">&quot;brain.backup.descriptor&quot;</span>)</a>
-<a class="sourceLine" id="cb7-9" title="9"><span class="kw">reducedDims</span>(sce)<span class="op">$</span>umap&lt;-<span class="kw">run.umap_louvain</span>(<span class="dt">Smat=</span>Smat,</a>
-<a class="sourceLine" id="cb7-10" title="10">                                        <span class="dt">knn=</span><span class="dv">20</span>,</a>
-<a class="sourceLine" id="cb7-11" title="11">                                        <span class="dt">resolution=</span><span class="ot">NULL</span>)</a>
-<a class="sourceLine" id="cb7-12" title="12">Smat_corrected&lt;-<span class="kw">deepcopy</span>(Smat,</a>
-<a class="sourceLine" id="cb7-13" title="13">                         <span class="dt">backingfile=</span><span class="st">&quot;brain2.backup&quot;</span>,</a>
-<a class="sourceLine" id="cb7-14" title="14">                         <span class="dt">descriptorfile=</span><span class="st">&quot;brain2.backup.descriptor&quot;</span>)</a>
-<a class="sourceLine" id="cb7-15" title="15">batch&lt;-<span class="kw">factor</span>(<span class="kw">colData</span>(sce)<span class="op">$</span>ident)</a>
-<a class="sourceLine" id="cb7-16" title="16">res_joint&lt;-<span class="kw">epiConv.joint</span>(<span class="dt">Smat=</span>Smat_corrected,</a>
-<a class="sourceLine" id="cb7-17" title="17">                         <span class="dt">batch=</span>batch,</a>
-<a class="sourceLine" id="cb7-18" title="18">                         <span class="dt">reference=</span><span class="st">&quot;ATAC&quot;</span>,</a>
-<a class="sourceLine" id="cb7-19" title="19">                         <span class="dt">neigs=</span><span class="dv">30</span>,</a>
-<a class="sourceLine" id="cb7-20" title="20">                         <span class="dt">features=</span>guide_features,</a>
-<a class="sourceLine" id="cb7-21" title="21">                         <span class="dt">knn_mat=</span>knn_mat,</a>
-<a class="sourceLine" id="cb7-22" title="22">                         <span class="dt">knn_target=</span><span class="dv">50</span>,</a>
-<a class="sourceLine" id="cb7-23" title="23">                         <span class="dt">knn_reference=</span><span class="dv">20</span>,</a>
-<a class="sourceLine" id="cb7-24" title="24">                         <span class="dt">threshold=</span><span class="dv">2</span>)</a></code></pre></div>
-<p>We calculate the similarity matrix on combined data and perfrom batch correction. There are some cells with NA because they cannot be properly corrected in this small dataset. Generally there will be few cells with NA in larger datasets.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1">temp&lt;-<span class="kw">run.umap_louvain</span>(<span class="dt">Smat=</span>Smat_corrected,</a>
-<a class="sourceLine" id="cb8-2" title="2">                       <span class="dt">knn=</span><span class="dv">20</span>,</a>
-<a class="sourceLine" id="cb8-3" title="3">                       <span class="dt">resolution=</span><span class="kw">c</span>(<span class="fl">0.4</span>,<span class="fl">0.8</span>)) <span class="co">##Here we try resolution=0.4 and 0.8.</span></a>
-<a class="sourceLine" id="cb8-4" title="4"><span class="kw">reducedDims</span>(sce)<span class="op">$</span>umap_corrected&lt;-<span class="kw">as.matrix</span>(temp[,<span class="dv">1</span><span class="op">:</span><span class="dv">2</span>])</a>
-<a class="sourceLine" id="cb8-5" title="5"><span class="kw">colData</span>(sce)&lt;-<span class="kw">cbind</span>(<span class="kw">colData</span>(sce),<span class="dt">cluster=</span><span class="kw">factor</span>(temp[,<span class="dv">3</span>]))</a>
-<a class="sourceLine" id="cb8-6" title="6"><span class="kw">plot</span>(<span class="kw">reducedDims</span>(sce)<span class="op">$</span>umap,<span class="dt">pch=</span><span class="st">&quot;+&quot;</span>,<span class="dt">cex=</span><span class="fl">0.5</span>,<span class="dt">col=</span>batch)</a>
-<a class="sourceLine" id="cb8-7" title="7"><span class="kw">plot</span>(<span class="kw">reducedDims</span>(sce)<span class="op">$</span>umap_corrected,<span class="dt">pch=</span><span class="st">&quot;+&quot;</span>,<span class="dt">cex=</span><span class="fl">0.5</span>,<span class="dt">col=</span>batch)</a>
-<a class="sourceLine" id="cb8-8" title="8"><span class="kw">plot</span>(<span class="kw">reducedDims</span>(sce)<span class="op">$</span>umap_corrected,<span class="dt">pch=</span><span class="st">&quot;+&quot;</span>,<span class="dt">cex=</span><span class="fl">0.5</span>,</a>
-<a class="sourceLine" id="cb8-9" title="9">     <span class="dt">col=</span><span class="kw">rainbow</span>(<span class="kw">nlevels</span>(sce<span class="op">$</span>cluster))[sce<span class="op">$</span>cluster])</a></code></pre></div>
-<p>Finally we see the results.</p>
-</div>
+<a class="sourceLine" id="cb4-5" title="5">res_anchor&lt;-<span class="kw">epiConv.anchor</span>(<span class="dt">Smat=</span>Smat_corrected,</a>
+<a class="sourceLine" id="cb4-6" title="6">                           <span class="dt">row_sample=</span>row_sample,</a>
+<a class="sourceLine" id="cb4-7" title="7">                           <span class="dt">batch=</span>batch,</a>
+<a class="sourceLine" id="cb4-8" title="8">                           <span class="dt">reference=</span><span class="st">&quot;Resting&quot;</span>,</a>
+<a class="sourceLine" id="cb4-9" title="9">                           <span class="dt">neigs=</span><span class="dv">30</span>,</a>
+<a class="sourceLine" id="cb4-10" title="10">                           <span class="dt">features=</span><span class="ot">NULL</span>,</a>
+<a class="sourceLine" id="cb4-11" title="11">                           <span class="dt">knn_target=</span><span class="dv">50</span>,</a>
+<a class="sourceLine" id="cb4-12" title="12">                           <span class="dt">knn_reference=</span><span class="dv">20</span>,</a>
+<a class="sourceLine" id="cb4-13" title="13">                           <span class="dt">threshold=</span><span class="dv">2</span>)</a></code></pre></div>
+<p>We calculate the knn matrix between datasets by <code>epiConv.anchor</code> or the parallel version <code>epiConv.anchor.parallel</code>. The knn matrix is stored in <code>res_anchor$knn_update</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">res_eigs&lt;-<span class="kw">epiConv.correct</span>(<span class="dt">Smat=</span>Smat_corrected,</a>
+<a class="sourceLine" id="cb5-2" title="2">                          <span class="dt">row_sample=</span>row_sample,</a>
+<a class="sourceLine" id="cb5-3" title="3">                          <span class="dt">batch=</span>batch,</a>
+<a class="sourceLine" id="cb5-4" title="4">                          <span class="dt">reference=</span><span class="st">&quot;Resting&quot;</span>,</a>
+<a class="sourceLine" id="cb5-5" title="5">                          <span class="dt">neigs=</span><span class="dv">30</span>,</a>
+<a class="sourceLine" id="cb5-6" title="6">                          <span class="dt">knn_update=</span>res_anchor<span class="op">$</span>knn_update)</a></code></pre></div>
+<p>We perform batch correction using <code>epiConv.correct</code> or the parallel version <code>epiConv.correct.parallel</code>. <code>res_eigs</code> contains the Eigenvectors before and after correction and the Eigenvalues. The similarities between cells in <code>Smat_corrected</code> are replaced by corrected values.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">snn_mat_corrected&lt;-<span class="kw">Smat2snn</span>(Smat_corrected,<span class="dt">knn=</span><span class="dv">20</span>)</a>
+<a class="sourceLine" id="cb6-2" title="2">dis&lt;-snn_mat_corrected</a>
+<a class="sourceLine" id="cb6-3" title="3">dis<span class="op">@</span>x&lt;-<span class="kw">max</span>(dis<span class="op">@</span>x)<span class="op">-</span>dis<span class="op">@</span>x<span class="fl">+1e-9</span></a>
+<a class="sourceLine" id="cb6-4" title="4">umap_res_corrected&lt;-uwot<span class="op">::</span><span class="kw">umap</span>(<span class="dt">X=</span>dis,<span class="dt">n_neighbors=</span><span class="dv">20</span>)</a>
+<a class="sourceLine" id="cb6-5" title="5"></a>
+<a class="sourceLine" id="cb6-6" title="6"><span class="kw">plot</span>(umap_res,<span class="dt">pch=</span><span class="st">&quot;+&quot;</span>,<span class="dt">cex=</span><span class="fl">0.5</span>,<span class="dt">col=</span><span class="kw">factor</span>(sce<span class="op">$</span>ident))</a>
+<a class="sourceLine" id="cb6-7" title="7"><span class="kw">plot</span>(umap_res_corrected,<span class="dt">pch=</span><span class="st">&quot;+&quot;</span>,<span class="dt">cex=</span><span class="fl">0.5</span>,<span class="dt">col=</span><span class="kw">factor</span>(sce<span class="op">$</span>ident))</a></code></pre></div>
+<p>Finally, we perfrom UMAP dimension reduction on corrected data and compare the results before and after correction.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">clust&lt;-<span class="kw">epiConv.louvain</span>(<span class="dt">snn=</span>snn_mat_corrected,<span class="dt">resolution=</span><span class="kw">c</span>(<span class="fl">0.8</span>,<span class="fl">0.6</span>,<span class="fl">0.4</span>,<span class="fl">0.2</span>))</a>
+<a class="sourceLine" id="cb7-2" title="2"><span class="kw">head</span>(clust)</a></code></pre></div>
+<p>Louvain clustering can also be performed on the SNN matrix.</p>
 
 
 

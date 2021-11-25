@@ -1,15 +1,15 @@
 Package: epiConv
 Type: Package
 Title: Tools for single-cell ATAC-seq data
-Version: 0.1.1
+Version: 0.1.3
 Author: Li Lin
-Maintainer: Linli <linli@shanghaitech.den.cn>
-Description: Remove batch effects of single-cell ATAC-seq data.
+Maintainer: Linli <linli@shanghaitech.edu.cn>
+Description: correct batch effects of single-cell ATAC-seq data.
 License: MIT
 Encoding: UTF-8
 LazyData: true
-Depends: Matrix,bigmemory,biganalytics
-Imports: Seurat,PRIMME,umap,uwot
+Depends: Matrix,bigmemory,biganalytics,Seurat,PRIMME,uwot
+Imports:
 RoxygenNote: 7.1.1
 Suggests: 
  knitr,

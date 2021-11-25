@@ -15,12 +15,10 @@ opts_chunk$set(fig.align = 'center', fig.width = 6, fig.height = 5, dev = 'png')
 options(warn=-1)
 ```
 
-EpiConv is an algorithm of clustering scATAC-seq data and correcting batch effects.<br>
-To run the scripts below, package `SingleCellExperiment` is required to store the data. It can be installed through Bioconductor.
+EpiConv is an algorithm to correct batch effects and perform clustering for scATAC-seq data.<br>
+To run the scripts below, R package `SingleCellExperiment` is also required. It can be installed through Bioconductor.
 
-### Integrate scATAC-seq data
-
-We will show the usage of epiConv on LPS-stimulated human bone marrow mononuclear cells (BMMCs, data from [GSE123580](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE123580)). The data contains resting and LPS-stimulated BMMCs.
+We will  integrate resting and LPS-stimulated human bone marrow mononuclear cells (BMMCs, data from [GSE123580](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE123580)).
 
 ```{r eval=FALSE}
 suppressMessages(library(epiConv))
@@ -35,129 +33,79 @@ rownames(mat)<-paste(peak$seqnames,":",
                      peak$start,"-",
                      peak$end,sep="")
 colnames(mat)<-cell_info[,1]
-sce<-SingleCellExperiment(assays=SimpleList(counts=mat),
+sce<-SingleCellExperiment(assays=SimpleList(counts=as(mat,"dgCMatrix")),
                           rowRanges=GRanges(peak),colData=cell_info)
 colData(sce)$lib_size<-lib.estimate(assays(sce)$counts)
 sce<-subset(sce,select=colData(sce)$lib_size>500)
-sce<-subset(sce,subset=freq.estimate(assays(sce)$counts)>0)
 ```
-First we read the data and create a SingleCellExperiment object to store the data.`lib.estimate` and `freq.estimate` are two simple functions to calculate the library size of single cells and the frequency of peaks. We removed cells with library size <= 500.
+First we read the data and create a SingleCellExperiment object.`lib.estimate` is a simple function to calculate the library size (number of accessible peaks) of single cells. We remove cells with library size <= 500.
 ```{r eval=FALSE}
+
+row_sample<-1:ncol(sce)
 Smat<-run.epiConv(mat=assays(sce)$counts,
+                  row_sample=row_sample,
                   lib_size=sce$lib_size,
-                  nbootstrap=15,
-                  nsample=floor(nrow(sce)*0.2),
-                  bin=5000,
-                  inf=(-8),
+                  nbootstrap=3,
+                  nsample=floor(nrow(sce)*0.5),
+                  bin=1000,
+                  inf=(-10),
                   backingfile="bmmc.backup",
                   descriptorfile="bmmc.backup.descriptor")
 ```
-We calculate the similarity matrix of cells by `run.epiConv`. The similarity matrix is file-backed. `Smat` is a pointor to the file. A pointor can also be created from existing file `Smat<-attach.big.matrix("bmmc.backup.descriptor")`.
+We calculate the similarity matrix between cells by `run.epiConv` or the parallel version `run.epiConv.parallel`. The similarity matrix is file-backed. `Smat` is a pointor to the file. A pointor can also be created from existing file `Smat<-attach.big.matrix("bmmc.backup.descriptor")`.<br>
+If the data is large, we can down-sample the data by specifying the indices of sampled cells through `row_sample`. The similarities will be calculated between sampled cells and all cells. In the example above, we do not perform down-sampling.
+
 
 ```{r eval=FALSE}
-reducedDims(sce)$umap<-run.umap_louvain(Smat=Smat,
-                                        knn=50,
-                                        resolution=NULL)
+snn_mat<-Smat2snn(Smat,knn=20)
+dis<-snn_mat
+dis@x<-max(dis@x)-dis@x+1e-9
+umap_res<-uwot::umap(X=dis,n_neighbors=20)
+
 ```
-We perform dimension reduction by `run.umap_louvain`.
+We calculate the SNN matrix by `Smat2snn` and perform UMAP dimension reduction by `uwot::umap`.
 
 ```{r eval=FALSE}
 batch<-factor(sce$ident)
 Smat_corrected<-deepcopy(Smat,
                          backingfile="bmmc2.backup",
                          descriptorfile="bmmc2.backup.descriptor")
-res_joint<-epiConv.joint(Smat=Smat_corrected,
-                         batch=batch,
-                         reference="Resting",
-                         neigs=30,
-                         features=NULL,
-                         knn_mat=NULL,
-                         knn_target=50,
-                         knn_reference=20,
-                         threshold=2)
-
+res_anchor<-epiConv.anchor(Smat=Smat_corrected,
+                           row_sample=row_sample,
+                           batch=batch,
+                           reference="Resting",
+                           neigs=30,
+                           features=NULL,
+                           knn_target=50,
+                           knn_reference=20,
+                           threshold=2)
 ```
-We perform batch correction using `epiConv.joint`. The corrected matrix is stored in another file-backed file `Smat_corrected`. `res_joint` contains the Eigen vectors before correction, after correction and the knn matrix.
+We calculate the knn matrix between datasets by `epiConv.anchor` or the parallel version `epiConv.anchor.parallel`. The knn matrix is stored in `res_anchor$knn_update`.
 
 ```{r eval=FALSE}
-temp<-run.umap_louvain(Smat=Smat_corrected,
-                       knn=50,
-                       resolution=0.8)
-reducedDims(sce)$umap_corrected<-as.matrix(temp[,1:2])
-colData(sce)<-cbind(colData(sce),cluster=factor(temp[,3]))
+res_eigs<-epiConv.correct(Smat=Smat_corrected,
+                          row_sample=row_sample,
+                          batch=batch,
+                          reference="Resting",
+                          neigs=30,
+                          knn_update=res_anchor$knn_update)
 
-plot(reducedDims(sce)$umap,pch="+",cex=0.5,col=factor(sce$ident))
-plot(reducedDims(sce)$umap_corrected,pch="+",cex=0.5,col=factor(sce$ident))
-plot(reducedDims(sce)$umap_corrected,pch="+",cex=0.5,col=rainbow(nlevels(sce$cluster))[sce$cluster])
 ```
-We perfrom dimension reduction and clustering on corrected similarity matrix.<br>
-
-### Integrate multi-omics data with scATAC-seq data
-
-If cells are with transcriptome profiles (co-assay data), we can use the transcriptome to improve the performance of batch correction. Next, we will integrate one co-assay data of postnatal day 0 mouse cortex (GSE126074) and one scATAC-seq data from [10x Genomics](https://support.10xgenomics.com/single-cell-atac/datasets) to show the usage of epiConv. The data after basic quality control is stored in `sce.rds`.
-```{r eval=FALSE}
-suppressMessages(library(epiConv))
-suppressMessages(library(SingleCellExperiment))
-
-sce<-readRDS(file="sce.rds")
-index_coassay<-which(colData(sce)$ident=="co-assay")
-Smat<-run.epiConv(mat=assays(sce)$counts[,index_coassay],
-                  lib_size=sce$lib_size[index_coassay],
-                  nbootstrap=15,
-                  nsample=floor(nrow(sce)*0.2),
-                  bin=5000,
-                  inf=(-8))
-
-feature_coassay<-cal.feature(Smat=Smat,
-                             pcs=reducedDims(sce)$PCA_RNA[index_coassay,],
-                             neigs=50)
-knn_mat<-list()
-knn_mat[["co-assay"]]<-find.knn(as.matrix(dist(feature_coassay))*(-1),
-                       knn=floor(nrow(feature_coassay)*0.01))
-guide_features<-list()
-guide_features[["co-assay"]]<-reducedDims(sce)$PCA_RNA[index_coassay,]
-```
-First, we combined 50 principal components (PCs) from RNA-seq `reducedDims(sce)$PCA_RNA`(calculated from RNA-seq) and 50 Eigen vectors from ATAC-seq by `cal.feature` to create `knn_mat` that contains the knn matrix of co-assay data. We also create `guide-features` that contains the PCs of RNA-seq. `knn_mat` and `guide_features` will be used in batch correction.
+We perform batch correction using `epiConv.correct` or the parallel version `epiConv.correct.parallel`. `res_eigs` contains the Eigenvectors before and after correction and the Eigenvalues. The similarities between cells in `Smat_corrected` are replaced by corrected values.
 
 ```{r eval=FALSE}
-Smat<-run.epiConv(mat=assays(sce)$counts,
-                  lib_size=sce$lib_size,
-                  nbootstrap=15,
-                  nsample=floor(nrow(sce)*0.2),
-                  bin=10000,
-                  inf=(-8),
-                  backingfile="brain.backup",
-                  descriptorfile="brain.backup.descriptor")
-reducedDims(sce)$umap<-run.umap_louvain(Smat=Smat,
-                                        knn=20,
-                                        resolution=NULL)
-Smat_corrected<-deepcopy(Smat,
-                         backingfile="brain2.backup",
-                         descriptorfile="brain2.backup.descriptor")
-batch<-factor(colData(sce)$ident)
-res_joint<-epiConv.joint(Smat=Smat_corrected,
-                         batch=batch,
-                         reference="ATAC",
-                         neigs=30,
-                         features=guide_features,
-                         knn_mat=knn_mat,
-                         knn_target=50,
-                         knn_reference=20,
-                         threshold=2)
+snn_mat_corrected<-Smat2snn(Smat_corrected,knn=20)
+dis<-snn_mat_corrected
+dis@x<-max(dis@x)-dis@x+1e-9
+umap_res_corrected<-uwot::umap(X=dis,n_neighbors=20)
+
+plot(umap_res,pch="+",cex=0.5,col=factor(sce$ident))
+plot(umap_res_corrected,pch="+",cex=0.5,col=factor(sce$ident))
 ```
-We calculate the similarity matrix on combined data and perfrom batch correction.
-There are some cells with NA because they cannot be properly corrected in this small dataset. Generally there will be few cells with NA in larger datasets.
+Finally, we perfrom UMAP dimension reduction on corrected data and compare the results before and after correction.
 
 ```{r eval=FALSE}
-temp<-run.umap_louvain(Smat=Smat_corrected,
-                       knn=20,
-                       resolution=c(0.4,0.8)) ##Here we try resolution=0.4 and 0.8.
-reducedDims(sce)$umap_corrected<-as.matrix(temp[,1:2])
-colData(sce)<-cbind(colData(sce),cluster=factor(temp[,3]))
-plot(reducedDims(sce)$umap,pch="+",cex=0.5,col=batch)
-plot(reducedDims(sce)$umap_corrected,pch="+",cex=0.5,col=batch)
-plot(reducedDims(sce)$umap_corrected,pch="+",cex=0.5,
-     col=rainbow(nlevels(sce$cluster))[sce$cluster])
+clust<-epiConv.louvain(snn=snn_mat_corrected,resolution=c(0.8,0.6,0.4,0.2))
+head(clust)
 ```
-Finally we see the results.
-
+Louvain clustering can also be performed on the SNN matrix.
